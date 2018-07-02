@@ -194,7 +194,7 @@ def _ncc_c_3dim(x, y):
     >>> _ncc_c_3dim(tensor([[1.,1.,1.]]), tensor([[1.,1.,1.]]))
     tensor([[[0.3333, 0.6667, 1.0000, 0.6667, 0.3333]]])
     """
-    den = norm(x, 2, dim=1)[:, None] * norm(y, 2, dim=1)
+    den = norm(x, 2, dim=1).unsqueeze(-1) * norm(y, 2, dim=1)
     den[den == 0] = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
     signal_ndim = 1
     x_len = x.shape[-1]
@@ -208,13 +208,8 @@ def _ncc_c_3dim(x, y):
     xfft = rfft(x, signal_ndim)
     yfft = rfft(y, signal_ndim)
 
-    cc = irfft(complex_mul(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
-    return div(cc[:2 * x_len - 1], den)
-
-
-    cc = ifft(fft(x, fft_size) * np.conj(fft(y, fft_size))[:, None])
-    cc = np.concatenate((cc[:, :, -(x_len - 1):], cc[:, :, :x_len]), axis=2)
-    return np.real(cc) / den.T[:, :, None]
+    cc = irfft(complex_mul(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,)).unsqueeze(-1)
+    return div(cc[:, :, 2 * x_len - 1], den.unsqeeze(-1))
 
 
 def _sbd(x, y):
