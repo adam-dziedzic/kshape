@@ -7,6 +7,23 @@ from numpy.fft import fft, ifft
 
 
 def zscore(a, axis=0, ddof=0):
+    """
+    Z-normalize signal a.
+
+    :param a: the input signal (time-series)
+    :param axis: axis for the normalization
+    :param ddof: Means Delta Degrees of Freedom. The divisor used in calculations is N - ddof, where N represents the
+    number of elements. By default ddof is zero.
+    :return: z-normalized a
+
+    >>> zscore([1, 2, 3])
+    array([-1.22474487,  0.        ,  1.22474487])
+    >>> zscore([1, 2, 3], ddof=1)
+    array([-1.,  0.,  1.])
+    >>> zscore([[1,2,3],[4,5,6]], axis=1)
+    array([[-1.22474487,  0.        ,  1.22474487],
+           [-1.22474487,  0.        ,  1.22474487]])
+    """
     a = np.asanyarray(a)
     mns = a.mean(axis=axis)
     sstd = a.std(axis=axis, ddof=ddof)
@@ -19,6 +36,25 @@ def zscore(a, axis=0, ddof=0):
 
 
 def roll_zeropad(a, shift, axis=None):
+    """
+    Shift of a sequence with zero padding.
+
+    :param a: input time-series (sequence)
+    :param shift: the number of positions to be shifted to the right (shift >= 0) or to the left (shift < 0)
+    :param axis: the axis
+    :return:
+
+    >>> roll_zeropad([1, 2, 3], shift=2)
+    array([0, 0, 1])
+    >>> roll_zeropad([1, 2, 3], 0)
+    array([1, 2, 3])
+    >>> roll_zeropad([1, 2, 3], -1)
+    array([2, 3, 0])
+    >>> roll_zeropad([1, 2, 3], 3)
+    array([0, 0, 0])
+    >>> roll_zeropad([1, 2, 3], 4)
+    array([0, 0, 0])
+    """
     a = np.asanyarray(a)
     if shift == 0:
         return a
@@ -114,9 +150,9 @@ def _sbd(x, y):
 
 def _extract_shape(idx, x, j, cur_center):
     """
-    >>> _extract_shape(np.array([0,1,2]), np.array([[1,2,3], [4,5,6]]), 1, np.array([0,3,4]))
+    >>> _extract_shape(np.array([0,1]), np.array([[1,2,3], [4,5,6]]), 1, np.array([0,3,4]))
     array([-1.,  0.,  1.])
-    >>> _extract_shape(np.array([0,1,2]), np.array([[-1,2,3], [4,-5,6]]), 1, np.array([0,3,4]))
+    >>> _extract_shape(np.array([0,1]), np.array([[-1,2,3], [4,-5,6]]), 1, np.array([0,3,4]))
     array([-0.96836405,  1.02888681, -0.06052275])
     >>> _extract_shape(np.array([1,0,1,0]), np.array([[1,2,3,4], [0,1,2,3], [-1,1,-1,1], [1,2,2,3]]), 0, np.array([0,0,0,0]))
     array([-1.2089303 , -0.19618238,  0.19618238,  1.2089303 ])
