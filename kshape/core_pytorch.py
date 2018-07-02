@@ -187,12 +187,31 @@ def _ncc_c_3dim(x, y):
     Variant of NCCc that operates with 2 dimensional x arrays and 2 dimensional y arrays.
     Returns a 3 dimensional array of normalized fourier transforms.
 
-
+    >>> _ncc_c_3dim(tensor([[1.,2.,3.]]), tensor([[-1.,-1.,-1.]]))
+    tensor([[[-0.1543, -0.4629, -0.9258, -0.7715, -0.4629]]])
+    >>> _ncc_c_3dim(tensor([[1.,2.,3.,4.]]), tensor([[1.,2.,3.,4.]]))
+    tensor([[[0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333]]])
+    >>> _ncc_c_3dim(tensor([[1.,1.,1.]]), tensor([[1.,1.,1.]]))
+    tensor([[[0.3333, 0.6667, 1.0000, 0.6667, 0.3333]]])
     """
-    den = norm(x, axis=1)[:, None] * norm(y, axis=1)
-    den[den == 0] = np.Inf
+    den = norm(x, 2, dim=1)[:, None] * norm(y, 2, dim=1)
+    den[den == 0] = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
+    signal_ndim = 1
     x_len = x.shape[-1]
     fft_size = 1 << (2 * x_len - 1).bit_length()
+    pad_size = fft_size - x_len
+    padding = torch.zeros(x.shape[0], pad_size, device=x.device, dtype=x.dtype)
+    # conjugate in the frequency domain is equivalent to the reversed signal in the time domain
+    y = flip2(y, dim=1)
+    x = cat((x, padding), dim=1)
+    y = cat((y, padding), dim=1)
+    xfft = rfft(x, signal_ndim)
+    yfft = rfft(y, signal_ndim)
+
+    cc = irfft(complex_mul(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
+    return div(cc[:2 * x_len - 1], den)
+
+
     cc = ifft(fft(x, fft_size) * np.conj(fft(y, fft_size))[:, None])
     cc = np.concatenate((cc[:, :, -(x_len - 1):], cc[:, :, :x_len]), axis=2)
     return np.real(cc) / den.T[:, :, None]
@@ -284,24 +303,24 @@ def _extract_shape(idx, x, j, cur_center):
     return zscore(centroid, ddof=1)
 
 
-def _kshape_pytorch(x, k, max_iterations):
+def _kshape_pytorch(x, k, max_iterations=100):
     """
     >>> # since PyTorch 0.3 version you only need to set torch.manual_seed which will seed all devices, including gpu-s
     >>> # from core import_kshape_pytorch
-    >>> torch.manual_seed_all(0)
-    >>> torch_device = torch.device("gpu")
-    >>> x = torch.tensor([[1,2,3,4], [0,1,2,3], [-1,1,-1,1], [1,2,2,3]], device=torch_device)
-    >>> _kshape_pytorch(x, k)
-    (array([0, 0, 1, 0]), array([[-1.2244258 , -0.35015476,  0.52411628,  1.05046429],
+    >>> # torch.manual_seed(0)
+    >>> torch_device = torch.device("cpu")
+    >>> x = torch.tensor([[1., 2., 3., 4.], [0., 1., 2., 3.], [-1., 1., -1., 1.], [1., 2., 2., 3.]], device=torch_device)
+    >>> _kshape_pytorch(x, 2)
+    (tensor([0, 0, 1, 0]), array([[-1.2244258 , -0.35015476,  0.52411628,  1.05046429],
            [-0.8660254 ,  0.8660254 , -0.8660254 ,  0.8660254 ]]))
     """
     # randomly assign time-series to one of k's clusters
     n = x.size(0)  # number of time-series (data points)
     len = x.size(1)  # number of samples per time-series (the length/width of the time-series)
-    # idx - randomly assign each time-series to a cluster
+    # idx - one-dimensional array of randomly assigned time-series to clusters
     idx = torch.randint(0, k, (n,), device=x.device)
     # len: the lenght/width of the centroid is the same as the length/width of the time-series
-    centroids = torch.zeros(k, len, device=x.device, dtype=x.dtype)
+    centroids = torch.empty(k, len, device=x.device, dtype=x.dtype)
     # distances = torch.empty(m, k, device = torch_device)
 
     for _ in range(max_iterations):
@@ -309,10 +328,10 @@ def _kshape_pytorch(x, k, max_iterations):
         for j in range(k):
             centroids[j] = _extract_shape(idx, x, j, centroids[j])
 
-        distances = (1 - _ncc_c_3dim(x, centroids).max(axis=2)).T
+        distances = (1 - _ncc_c_3dim(x, centroids).max(dim=2)).transpose(0, 1)
 
         idx = distances.argmin(1)
-        if tensor_equal(old_idx, idx):
+        if old_idx.eq(idx):
             break
 
     return idx, centroids
