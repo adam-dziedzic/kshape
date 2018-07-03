@@ -55,7 +55,8 @@ def flip2(x, dim=0):
     return x[tuple(indices)]
 
 
-flip = flip1
+# flip = flip1
+flip = flip2  # I suppose there is a bug in current flip function in PyTorch so we revert to our own version of flip
 
 _torch_version = _torch_version()
 if _torch_version is None or _torch_version <= 0.4:
@@ -130,10 +131,12 @@ def complex_mul(x, y):
     >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
     >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
     >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
-    >>> complex_mul(x, y)
-    tensor([[108.,   0.],
-            [ -8.,  16.],
-            [ 12.,   0.]])
+    >>> # torch.equal(tensor1, tensor2): True if two tensors have the same size and elements, False otherwise.
+    >>> assert torch.equal(complex_mul(x, y), tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
+    >>> x = tensor([[1., 2.]])
+    >>> y = tensor([[2., 3.]])
+    >>> xy = complex_mul(x, y)
+    >>> assert torch.equal(xy, tensor([[-4., 7.]]))
     """
     ua = x[:, 0]
     va = y[:, 0]
@@ -146,6 +149,66 @@ def complex_mul(x, y):
     result[:, 0] = add(uavc, mul(mul(ub, vb), -1))
     result[:, 1] = add(mul(uc, va), uavc)
     return result
+
+
+def complex_mul_2dim(x, y):
+    """
+    Multiply arrays of complex numbers. Each complex number is expressed as a pair of real and imaginary parts.
+
+    :param x: the first 2D (two-dimensional) array of complex numbers
+    :param y: the second 2D (two-dimensional) array complex numbers
+    :return: result of multiplication (an array with complex numbers)
+    # based on the paper: Fast Algorithms for Convolutional Neural Networks (https://arxiv.org/pdf/1509.09308.pdf)
+    # based on the paper: Fast Algorithms for Convolutional Neural Networks (https://arxiv.org/pdf/1509.09308.pdf)
+    >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
+    >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
+    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
+    >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
+    >>> # torch.equal(tensor1, tensor2): True if two tensors have the same size and elements, False otherwise.
+    >>> torch.equal(complex_mul_2dim(x, y), tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
+    True
+    >>> x = tensor([[1., 2.]])
+    >>> y = tensor([[2., 3.]])
+    >>> xy = complex_mul_2dim(x, y)
+    >>> torch.equal(xy, tensor([[-4., 7.]]))
+    True
+    >>> x = tensor([[[1., 2.]]])
+    >>> y = tensor([[[2., 3.]]])
+    >>> xy = complex_mul_2dim(x, y)
+    >>> torch.equal(xy, tensor([[[-4., 7.]]]))
+    True
+    """
+    ua = x[..., 0]
+    va = y[..., 0]
+    ub = x[..., 0] + x[..., 1]
+    vb = y[..., 1]
+    uc = x[..., 1] - x[..., 0]
+    vc = y[..., 0] + y[..., 1]
+    uavc = mul(ua, vc)
+    ucva = mul(uc, va)
+    print("uavc shape: ", uavc.shape)
+    print("ucva shape: ", ucva.shape)
+    print("shape x: ", x.shape)
+    print("shape of add(ucva, uavc): ", add(ucva, uavc).shape)
+    result = torch.empty(*ucva.shape, 2)
+    result[..., 1] = add(ucva, uavc)
+    result[..., 0] = add(uavc, mul(mul(ub, vb), -1))
+    return result
+
+
+def pytorch_conjugate(x):
+    """
+    Conjugate all the complex numbers in tensor x in place.
+
+    :param x: PyTorch tensor with complex numbers
+    :return: conjugated numbers in x
+
+    >>> x = tensor([[1, 2]])
+    >>> x = pytorch_conjugate(x)
+    >>> assert torch.equal(x, tensor([[1, -2]]))
+    """
+    x[..., 1].mul_(-1)
+    return x
 
 
 def _ncc_c(x, y):
@@ -177,7 +240,7 @@ def _ncc_c(x, y):
     y = cat((y, padding))
     xfft = rfft(x, signal_ndim)
     yfft = rfft(y, signal_ndim)
-
+    # yfft = pytorch_conjugate(yfft)
     cc = irfft(complex_mul(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
     return div(cc[:2 * x_len - 1], den)
 
@@ -194,7 +257,8 @@ def _ncc_c_3dim(x, y):
     >>> _ncc_c_3dim(tensor([[1.,1.,1.]]), tensor([[1.,1.,1.]]))
     tensor([[[0.3333, 0.6667, 1.0000, 0.6667, 0.3333]]])
     """
-    den = norm(x, 2, dim=1).unsqueeze(-1) * norm(y, 2, dim=1)
+    # Apply the L2 norm (the p=2 - the exponent value in the norm formulation).
+    den = norm(x, p=2, dim=1).unsqueeze(-1) * norm(y, p=2, dim=1)
     den[den == 0] = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
     signal_ndim = 1
     x_len = x.shape[-1]
@@ -202,14 +266,14 @@ def _ncc_c_3dim(x, y):
     pad_size = fft_size - x_len
     padding = torch.zeros(x.shape[0], pad_size, device=x.device, dtype=x.dtype)
     # conjugate in the frequency domain is equivalent to the reversed signal in the time domain
-    y = flip2(y, dim=1)
+    y = flip(y, dim=1)
     x = cat((x, padding), dim=1)
     y = cat((y, padding), dim=1)
     xfft = rfft(x, signal_ndim)
     yfft = rfft(y, signal_ndim)
-
-    cc = irfft(complex_mul(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,)).unsqueeze(-1)
-    return div(cc[:, :, 2 * x_len - 1], den.unsqeeze(-1))
+    # yfft = pytorch_conjugate(yfft)
+    cc = irfft(complex_mul_2dim(xfft, yfft.unsqueeze(-3)), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
+    return div(cc[:, :, 2 * x_len - 1], den.unsqueeze(-1))
 
 
 def _sbd(x, y):
