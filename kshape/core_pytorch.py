@@ -221,10 +221,12 @@ def _ncc_c(x, y):
     >>> result1 = _ncc_c(tensor([1.,2.,3.,4.]), tensor([1.,2.,3.,4.]))
     >>> expected1 = tensor([0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333])
     >>> np.testing.assert_array_almost_equal(result1, expected1, decimal=4)
-    >>> _ncc_c(tensor([1.,1.,1.]), tensor([1.,1.,1.]))
-    tensor([0.3333, 0.6667, 1.0000, 0.6667, 0.3333])
-    >>> _ncc_c(tensor([1.,2.,3.]), tensor([-1.,-1.,-1.]))
-    tensor([-0.1543, -0.4629, -0.9258, -0.7715, -0.4629])
+    >>> result2 = _ncc_c(tensor([1.,1.,1.]), tensor([1.,1.,1.]))
+    >>> expected2 = tensor([0.3333, 0.6667, 1.0000, 0.6667, 0.3333])
+    >>> np.testing.assert_array_almost_equal(result2, expected2, decimal=4)
+    >>> result3 = _ncc_c(tensor([1.,2.,3.]), tensor([-1.,-1.,-1.]))
+    >>> expected3 = tensor([-0.1543, -0.4629, -0.9258, -0.7715, -0.4629])
+    >>> np.testing.assert_array_almost_equal(result3, expected3, decimal=4)
     """
     # the denominator for normalization
     den = norm(x) * norm(y)
@@ -244,6 +246,50 @@ def _ncc_c(x, y):
     # yfft = pytorch_conjugate(yfft)
     cc = irfft(complex_mul(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
     return div(cc[:(2 * x_len - 1)], den)
+
+
+def _ncc_c_2dim(x, y):
+    """
+    Variant of NCCc that operates with 2 dimensional X arrays and 1 dimensional
+    y vector.
+
+    :param x: 2 dimensional array with time series
+    :param y: 1 dimensional array with a single centroid
+    :return: a 2 dimensional array of normalized fourier transforms
+
+    >>> result1 = _ncc_c_2dim(tensor([[1.0, 2.0, 3.0], [4.0, 1.0, 2.0]]), tensor([1.0, 2.0, 1.0]))
+    >>> expected1 = tensor([[0.10910895, 0.43643578, 0.87287156, 0.87287156, 0.32732684], [0.35634832, 0.80178373, 0.71269665, 0.4454354 , 0.17817416]])
+    >>> np.testing.assert_array_almost_equal(result1, expected1, decimal=4)
+    >>> result1 = _ncc_c_2dim(tensor([[1.,2.,3.,4.]]), tensor([1.,2.,3.,4.]))
+    >>> expected1 = tensor([[0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333]])
+    >>> np.testing.assert_array_almost_equal(result1, expected1, decimal=4)
+    >>> result2 = _ncc_c_2dim(tensor([[1.,1.,1.]]), tensor([1.,1.,1.]))
+    >>> expected2 = tensor([[0.3333, 0.6667, 1.0000, 0.6667, 0.3333]])
+    >>> np.testing.assert_array_almost_equal(result2, expected2, decimal=4)
+    >>> result3 = _ncc_c_2dim(tensor([[1.,2.,3.]]), tensor([-1.,-1.,-1.]))
+    >>> expected3 = tensor([[-0.1543, -0.4629, -0.9258, -0.7715, -0.4629]])
+    >>> np.testing.assert_array_almost_equal(result3, expected3, decimal=4)
+    """
+    # the denominator for normalization
+    den = norm(x, p=2, dim=1) * norm(y)
+    # for array den with values 0, replaces 0 values in den with float('inf')
+    # https://goo.gl/XSxvau : boolean indexing in Python
+    den[den == 0] = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
+    signal_ndim = 1
+    x_len = x.shape[-1]
+    fft_size = 1 << (2 * x_len - 1).bit_length()
+    pad_size = fft_size - x_len
+    x_padding = torch.zeros(x.shape[0], pad_size, device=x.device, dtype=x.dtype)
+    y_padding = torch.zeros(pad_size, device=y.device, dtype=y.dtype)
+    # conjugate in the frequency domain is equivalent to the reversed signal in the time domain
+    y = flip(y, dim=0)
+    x = cat((x, x_padding), dim=1)
+    y = cat((y, y_padding))
+    xfft = rfft(x, signal_ndim)
+    yfft = rfft(y, signal_ndim)
+    # yfft = pytorch_conjugate(yfft)
+    cc = irfft(complex_mul_2dim(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
+    return div(cc[:, :(2 * x_len - 1)], den.unsqueeze(-1))
 
 
 def _ncc_c_3dim(x, y):
@@ -266,6 +312,8 @@ def _ncc_c_3dim(x, y):
     """
     # Apply the L2 norm (the p=2 - the exponent value in the norm formulation).
     den = norm(x, p=2, dim=1).unsqueeze(-1) * norm(y, p=2, dim=1)
+    # for array den with values 0, replaces 0 values in den with float('inf')
+    # https://goo.gl/XSxvau : boolean indexing in Python
     den[den == 0] = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
     signal_ndim = 1
     x_len = x.shape[-1]
@@ -282,6 +330,7 @@ def _ncc_c_3dim(x, y):
     xfft = rfft(x, signal_ndim)
     yfft = rfft(y, signal_ndim)
     # yfft = pytorch_conjugate(yfft)
+    # use broadcasting ...unsqueeze(-3) to compute the distances for each pair of time-series and centroids
     cc = irfft(complex_mul_2dim(xfft, yfft.unsqueeze(-3)), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
     den = den.transpose(0, 1).unsqueeze(-1)
     cc = cc[:, :, :(2 * x_len - 1)]
@@ -375,35 +424,66 @@ def _extract_shape(idx, x, j, cur_center):
     return zscore(centroid, ddof=1)
 
 
-def _kshape_pytorch(x, k, max_iterations=100):
+def _kshape_pytorch(x, k, max_iterations=100, idx=None):
     """
+    The main call of kshape.
+
+    :param x: the 2 dimensional array with time-series data
+    :param k: the scalar with number of expected clusters
+    :param max_iterations: how many times iterate through the time-series data, where each iteration is composed of two
+    steps: 1) cluster membership assignment, 2) centroid computation
+    :param idx: the initial assignment of time series to clusters
+    :return: a two element tuple where at the first position we have (for each time series) - its index of a cluster
+    and, in the second element of the tuple, the centroids for each cluster.
+
     >>> # since PyTorch 0.3 version you only need to set torch.manual_seed which will seed all devices, including gpu-s
     >>> # from core import_kshape_pytorch
-    >>> # torch.manual_seed(0)
+    >>> # torch.manual_seed(0) # no need to set the seed - we set the initial cluster assignment
+
+    >>> result_cluster_assignment, result_centroids = _kshape_pytorch(tensor([[1.0,2.0,3.0,4.0], [0.0,1.0,2.0,3.0], [-1.0,1.0,-1.0,1.0], [1.0,2.0,2.0,3.0], [1.0,2.2,-2.0,-3.0], [-1.1,2.3,-2.9,3.4]], dtype=torch.double), 3, idx=torch.tensor([1, 2, 1, 0, 0, 1]))
+    >>> expected_cluster_assignments, expected_centroids = (tensor([2, 2, 1, 0, 0, 1]), tensor([[-0.663535, -1.008225,  0.565868,  1.105892], [-0.701075,  0.761482, -1.011736,  0.95133 ], [-1.161895, -0.387298,  0.387299,  1.161895]]))
+    >>> np.testing.assert_array_equal(result_cluster_assignment, expected_cluster_assignments)
+    >>> np.testing.assert_array_almost_equal(result_centroids, expected_centroids)
+
     >>> torch_device = torch.device("cpu")
-    >>> x = torch.tensor([[1., 2., 3., 4.], [0., 1., 2., 3.], [-1., 1., -1., 1.], [1., 2., 2., 3.]], device=torch_device)
-    >>> _kshape_pytorch(x, 2)
-    (tensor([0, 0, 1, 0]), array([[-1.2244258 , -0.35015476,  0.52411628,  1.05046429],
-           [-0.8660254 ,  0.8660254 , -0.8660254 ,  0.8660254 ]]))
+    >>> result_cluster_assignment, result_centroids = _kshape_pytorch(tensor([[1.0,2.0,3.0,4.0], [0.0,1.0,2.0,3.0], [-1.0,1.0,-1.0,1.0], [1.0,2.0,2.0,3.0]]), 2, idx=torch.tensor([1, 0, 1, 0]))
+    >>> expected_cluster_assignments, expected_centroids = (tensor([0, 0, 1, 0]), tensor([[-1.050464, -0.524116,  0.350155,  1.224426], [-0.866025,  0.866025, -0.866025,  0.866025]]))
+    >>> np.testing.assert_array_equal(result_cluster_assignment, expected_cluster_assignments)
+    >>> np.testing.assert_array_almost_equal(result_centroids, expected_centroids)
     """
     # randomly assign time-series to one of k's clusters
     n = x.size(0)  # number of time-series (data points)
     len = x.size(1)  # number of samples per time-series (the length/width of the time-series)
     # idx - one-dimensional array of randomly assigned time-series to clusters
-    idx = torch.randint(0, k, (n,), device=x.device)
+    if idx is None:
+        idx = torch.randint(0, k, (n,), device=x.device)
     # len: the lenght/width of the centroid is the same as the length/width of the time-series
-    centroids = torch.empty(k, len, device=x.device, dtype=x.dtype)
+    centroids = torch.zeros(k, len, device=x.device, dtype=x.dtype)
     # distances = torch.empty(m, k, device = torch_device)
 
     for _ in range(max_iterations):
-        old_idx = idx
+        old_idx = idx.clone()
         for j in range(k):
             centroids[j] = _extract_shape(idx, x, j, centroids[j])
 
-        distances = (1 - _ncc_c_3dim(x, centroids).max(dim=2)).transpose(0, 1)
+        # distances = (1 - _ncc_c_3dim(x, centroids).max(dim=2)[0]).transpose(0, 1)
+        # similarities = _ncc_c_3dim(x, centroids)
+        # # tensor.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
+        # # row of the input tensor in the given dimension dim. The second return value is the index location of each
+        # # maximum value found (argmax).
+        # max_similarities = similarities.max(dim=-1)[0]
+        # distances = (1 - max_similarities).transpose(0, 1)
+        # idx = distances.argmin(dim=1)
 
-        idx = distances.argmin(1)
-        if old_idx.eq(idx):
+        # compute distance in a for loop - it works better for huge amount of data:
+        # http://scipy.github.io/old-wiki/pages/EricsBroadcastingDoc
+        for i, time_series in enumerate(x):
+            similarities = _ncc_c_2dim(centroids, time_series)
+            max_similarities = similarities.max(dim=-1)[0]
+            closest_centroid_index = max_similarities.argmax().item()
+            idx[i] = closest_centroid_index
+
+        if torch.equal(old_idx, idx):
             break
 
     return idx, centroids
@@ -419,7 +499,7 @@ def kshape_pytorch(x, k, device="cpu", max_iterations=100):
     :param max_iterations: maximum number of iterations, where each iterations is composed of two steps:
     (1) assignment step: update the cluster membership for each time-series
     (2) refinement step: update the cluster centroids
-    :return:
+    :return: for each cluster returns its centroid and indexes of the time-series that belong to the cluster
     """
     torch_device = torch.device(device)
     if isinstance(x, np.ndarray):
@@ -428,7 +508,7 @@ def kshape_pytorch(x, k, device="cpu", max_iterations=100):
     else:
         x = torch.tensor(x, device=torch_device)
 
-    idx, centroids = _kshape_pytorch(x, k, torch_device, max_iterations=max_iterations)
+    idx, centroids = _kshape_pytorch(x, k, max_iterations=max_iterations, datatype=datatype)
     clusters = []
     for i, centroid in enumerate(centroids):
         series = []

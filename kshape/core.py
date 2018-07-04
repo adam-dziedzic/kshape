@@ -102,9 +102,19 @@ def _ncc_c(x, y):
 def _ncc_c_2dim(x, y):
     """
     Variant of NCCc that operates with 2 dimensional X arrays and 1 dimensional
-    y vector
+    y vector.
 
-    Returns a 2 dimensional array of normalized fourier transforms
+    :param x: 2 dimensional array with time series
+    :param y: 1 dimensional array with a single centroid
+    :return: a 2 dimensional array of normalized fourier transforms
+
+    >>> result1 = _ncc_c_2dim(np.array([[1.0, 2.0, 3.0], [4.0, 1.0, 2.0]]), np.array([1.0, 2.0, 1.0]))
+    >>> expected1 = np.array([[0.10910895, 0.43643578, 0.87287156, 0.87287156, 0.32732684], [0.35634832, 0.80178373, 0.71269665, 0.4454354 , 0.17817416]])
+    >>> np.testing.assert_almost_equal(result1, expected1)
+
+    >>> result2 = _ncc_c_2dim(np.array([[1.0, 2.0, 3.0], [4.0, 1.0, 2.0], [5.0, 0.0, -1.0], [-1.0, -2.0, -3.0]]), np.array([1.0, 2.0, 1.0]))
+    >>> expected2 = np.array([[0.10910895, 0.43643578, 0.87287156, 0.87287156, 0.32732684], [0.35634832, 0.80178373, 0.71269665, 0.4454354 , 0.17817416], [ 0.40032038  0.80064077  0.32025631 -0.16012815 -0.08006408], [-0.10910895 -0.43643578 -0.87287156 -0.87287156 -0.32732684]])
+    >>> np.testing.assert_almost_equal(result2, expected2)
     """
     den = np.array(norm(x, axis=1) * norm(y))
     den[den == 0] = np.Inf
@@ -231,25 +241,37 @@ def _extract_shape(idx, x, j, cur_center):
     return zscore(centroid, ddof=1)
 
 
-def _kshape(x, k):
+def _kshape(x, k, max_iterations=100, idx=None):
     """
-    >>> from numpy.random import seed; seed(0)
-    >>> _kshape(np.array([[1,2,3,4], [0,1,2,3], [-1,1,-1,1], [1,2,2,3]]), 2)
-    (array([0, 0, 1, 0]), array([[-1.2244258 , -0.35015476,  0.52411628,  1.05046429],
-           [-0.8660254 ,  0.8660254 , -0.8660254 ,  0.8660254 ]]))
+    >>> # from numpy.random import seed; seed(0)  # no need to set the seed - we set the initial cluster assignment
+
+    >>> result_cluster_assignment, result_centroids = _kshape(np.array([[1.0,2.0,3.0,4.0], [0.0,1.0,2.0,3.0], [-1.0,1.0,-1.0,1.0], [1.0,2.0,2.0,3.0], [1.0,2.2,-2.0,-3.0], [-1.1,2.3,-2.9,3.4]]), 3, idx=np.array([1, 2, 1, 0, 0, 1]))
+    >>> expected_cluster_assignments, expected_centroids = (np.array([2, 2, 1, 0, 0, 1]), np.array([[-0.663535, -1.008225,  0.565868,  1.105892], [-0.701075,  0.761482, -1.011736,  0.95133 ], [-1.161895, -0.387298,  0.387299,  1.161895]]))
+    >>> np.testing.assert_array_equal(result_cluster_assignment, expected_cluster_assignments)
+    >>> np.testing.assert_array_almost_equal(result_centroids, expected_centroids)
+
+    >>> result_cluster_assignment, result_centroids = _kshape(np.array([[1.0,2.0,3.0,4.0], [0.0,1.0,2.0,3.0], [-1.0,1.0,-1.0,1.0], [1.0,2.0,2.0,3.0]]), 2, idx=np.array([1, 0, 1, 0]))
+    >>> expected_cluster_assigments, expected_centroids = (np.array([0, 0, 1, 0]), np.array([[-1.050464, -0.524116,  0.350155,  1.224426], [-0.866025,  0.866025, -0.866025,  0.866025]]))
+    >>> np.testing.assert_equal(result_cluster_assignment, expected_cluster_assigments)
+    >>> np.testing.assert_array_almost_equal(result_centroids, expected_centroids)
     """
     m = x.shape[0]
-    idx = randint(0, k, size=m)
+    if idx is None:
+        idx = randint(0, k, size=m)
     centroids = np.zeros((k, x.shape[1]))
-    distances = np.empty((m, k))
 
-    for _ in range(100):
+    for _ in range(max_iterations):
         old_idx = idx
         for j in range(k):
             centroids[j] = _extract_shape(idx, x, j, centroids[j])
 
-        distances = (1 - _ncc_c_3dim(x, centroids).max(axis=2)).T
-
+        # distances = (1 - _ncc_c_3dim(x, centroids).max(axis=2)).T
+        similarities = _ncc_c_3dim(x, centroids)
+        # tensor.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
+        # row of the input tensor in the given dimension dim. The second return value is the index location of each
+        # maximum value found (argmax).
+        max_similarities = similarities.max(axis=2)
+        distances = (1 - max_similarities).T
         idx = distances.argmin(1)
         if np.array_equal(old_idx, idx):
             break
@@ -257,7 +279,7 @@ def _kshape(x, k):
     return idx, centroids
 
 
-def kshape(x, k):
+def kshape(x, k, max_iterations=100, idx=None):
     """
     Run kshape.
 
@@ -273,10 +295,10 @@ def kshape(x, k):
     >>> first_cluster = results[0]
     >>> second_cluster = results[1]
     >>> first_cluster[0]
-    >>> assert np.allclose(first_cluster[0], np.array([-1.05204252, -1.05204252,  0.30722438,  0.70136168,  1.09549899]))
-    >>> assert np.array_equal(np.array(first_cluster[1]), np.array([3, 4]))
-    >>> assert np.allclose(np.array(second_cluster[0]), np.array([-1.26491106e+00, -6.32455532e-01,  7.47745081e-17,  6.32455532e-01, 1.26491106e+00]))
-    >>> assert np.array_equal(np.array(second_cluster[1]), np.array([0, 1, 2]))
+    >>> np.testing.assert_array_almost_equal(first_cluster[0], np.array([-1.05204252, -1.05204252,  0.30722438,  0.70136168,  1.09549899]))
+    >>> np.testing.assert_array_equal(np.array(first_cluster[1]), np.array([3, 4]))
+    >>> np.testing.assert_array_almost_equal(np.array(second_cluster[0]), np.array([-1.26491106e+00, -6.32455532e-01,  7.47745081e-17,  6.32455532e-01, 1.26491106e+00]))
+    >>> np.testing.assert_array_equal(np.array(second_cluster[1]), np.array([0, 1, 2]))
     """
     idx, centroids = _kshape(np.array(x), k)
     clusters = []

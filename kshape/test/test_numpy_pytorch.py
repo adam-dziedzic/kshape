@@ -12,6 +12,73 @@ it with the results from numpy.
 
 
 class NumpyPytorchNccTest3D(unittest.TestCase):
+    """
+    The main line in _ncc_c_3dim is about broadcasting.
+
+    complex_mul_2dim(xfft, yfft.unsqueeze(-3)
+                                ^^^^^^^^^^^^^
+                                It enlarges the dimensions of yfft, so that the cross-correlation (convolution) is
+                                computed between every input time-series xfft and all the centroids yfft.
+
+    Source: http://scipy.github.io/old-wiki/pages/EricsBroadcastingDoc
+
+    Examples from Python and numpy:
+    > a = array([[1,2],[3,5],[5,6]])
+    > a
+    array([[1, 2],
+           [3, 5],
+           [5, 6]])
+    > b
+    array([1, 2])
+    > a * b
+    array([[ 1,  4],
+           [ 3, 10],
+           [ 5, 12]])
+    > b = array([[1,2],[3,4]])
+    >y a * b
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    ValueError: operands could not be broadcast together with shapes (3,2) (2,2)
+    >y a
+    array([[1, 2],
+           [3, 5],
+           [5, 6]])
+    >y a.shape
+    (3, 2)
+    >y b.shape
+    (2, 2)
+    >y b[:,newaxis]
+    array([[[1, 2]],
+
+           [[3, 4]]])
+    >y b
+    array([[1, 2],
+           [3, 4]])
+    >y b = b[:,newaxis]
+    >y b.shape
+    (2, 1, 2)
+    >y b
+    array([[[1, 2]],
+
+           [[3, 4]]])
+    >y a * b
+    array([[[ 1,  4],
+            [ 3, 10],
+            [ 5, 12]],
+
+           [[ 3,  8],
+            [ 9, 20],
+            [15, 24]]])
+    >y (a * b).shape
+    (2, 3, 2)
+
+    Broadcasting rules:
+    1) In order to broadcast, the size of the trailing axes for both arrays in an operation must either be the same size
+    or one of them must be one.
+    2) The size of the result array created by broadcast operations is the maximum size along each dimension from the
+    input arrays.
+
+    """
 
     def setUp(self):
         self.num_type = np.double
@@ -228,7 +295,7 @@ class NumpyPytorchNccTest3D(unittest.TestCase):
         expected = torch.tensor([[[-0.1543, -0.4629, -0.9258, -0.7715, -0.4629]]])
         # print("result: ", result)
         # print("expected: ", expected)
-        np.testing.assert_array_almost_equal(result.numpy(), expected.numpy(), decimal=4)
+        np.testing.assert_array_almost_equal(result, expected, decimal=4)
 
     def test_ncc_c_3dim_3(self):
         result3 = _ncc_c_3dim(tensor([[1., 2., 3., 4.]]), tensor([[1., 2., 3., 4.]]))
