@@ -8,7 +8,7 @@ from kshape import core
 from kshape import core_pytorch
 from kshape.data import load_time_series
 
-gpu = "gpu"
+gpu = "cuda"
 cpu = "cpu"
 torch = "torch"
 numpy = "numpy"
