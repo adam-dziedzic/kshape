@@ -508,7 +508,7 @@ def kshape_pytorch(x, k, device="cpu", max_iterations=100):
     else:
         x = torch.tensor(x, device=torch_device)
 
-    idx, centroids = _kshape_pytorch(x, k, max_iterations=max_iterations, datatype=datatype)
+    idx, centroids = _kshape_pytorch(x, k, max_iterations=max_iterations)
     clusters = []
     for i, centroid in enumerate(centroids):
         series = []
