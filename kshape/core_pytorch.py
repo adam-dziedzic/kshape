@@ -190,7 +190,7 @@ def complex_mul_2dim(x, y):
     # print("ucva shape: ", ucva.shape)
     # print("shape x: ", x.shape)
     # print("shape of add(ucva, uavc): ", add(ucva, uavc).shape)
-    result = torch.empty(*ucva.shape, 2)
+    result = torch.empty(*ucva.shape, 2, dtype=x.dtype, device=x.device)
     result[..., 1] = add(ucva, uavc)
     result[..., 0] = add(uavc, mul(mul(ub, vb), -1))
     return result
@@ -242,7 +242,7 @@ def _ncc_c(x, y):
     yfft = rfft(y, signal_ndim)
     # yfft = pytorch_conjugate(yfft)
     cc = irfft(complex_mul(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
-    return div(cc[:2 * x_len - 1], den)
+    return div(cc[:(2 * x_len - 1)], den)
 
 
 def _ncc_c_3dim(x, y):
@@ -250,6 +250,9 @@ def _ncc_c_3dim(x, y):
     Variant of NCCc that operates with 2 dimensional x arrays and 2 dimensional y arrays.
     Returns a 3 dimensional array of normalized fourier transforms.
 
+    >>> result = _ncc_c_3dim(tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [1.0, 0.0, 2.0]]), tensor([[1.0, 1.0, 1.0], [1.0, 0.0, 2.0]]))
+    >>> result
+    >>> torch.equal(result, tensor([[[0.1543, 0.4629, 0.9258, 0.7715, 0.4629], [0.2632, 0.5922, 0.9869, 0.7237, 0.3948], [0.2582, 0.2582, 0.7746, 0.5164, 0.5164]], [[0.2390, 0.4781, 0.8367, 0.2390, 0.3586], [0.4077, 0.5096, 0.8154, 0.2548, 0.3058], [0.4000, 0.0000, 1.0000, 0.0000, 0.4000]]]))
     >>> _ncc_c_3dim(tensor([[1.,2.,3.]]), tensor([[-1.,-1.,-1.]]))
     tensor([[[-0.1543, -0.4629, -0.9258, -0.7715, -0.4629]]])
     >>> _ncc_c_3dim(tensor([[1.,2.,3.,4.]]), tensor([[1.,2.,3.,4.]]))
@@ -262,18 +265,23 @@ def _ncc_c_3dim(x, y):
     den[den == 0] = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
     signal_ndim = 1
     x_len = x.shape[-1]
+    y_len = y.shape[-1]
+    assert x_len == y_len  # the centroids should be of the same length as time-series
     fft_size = 1 << (2 * x_len - 1).bit_length()
     pad_size = fft_size - x_len
-    padding = torch.zeros(x.shape[0], pad_size, device=x.device, dtype=x.dtype)
+    x_padding = torch.zeros(x.shape[0], pad_size, device=x.device, dtype=x.dtype)
+    y_padding = torch.zeros(y.shape[0], pad_size, device=x.device, dtype=x.dtype)
     # conjugate in the frequency domain is equivalent to the reversed signal in the time domain
     y = flip(y, dim=1)
-    x = cat((x, padding), dim=1)
-    y = cat((y, padding), dim=1)
+    x = cat((x, x_padding), dim=1)
+    y = cat((y, y_padding), dim=1)
     xfft = rfft(x, signal_ndim)
     yfft = rfft(y, signal_ndim)
     # yfft = pytorch_conjugate(yfft)
     cc = irfft(complex_mul_2dim(xfft, yfft.unsqueeze(-3)), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
-    result = div(cc[:, :, 2 * x_len - 1], den.transpose(0, 1).unsqueeze(-1))
+    den = den.transpose(0, 1).unsqueeze(-1)
+    cc = cc[:, :, :(2 * x_len - 1)]
+    result = div(cc, den)
     return result
 
 
