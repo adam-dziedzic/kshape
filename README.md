@@ -89,6 +89,7 @@ GPU 1: 503
 | CPU 1           | numpy         | StarLightCurves  |  **53.658**  |float64  | 3 |commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | CPU 1           | numpy         | StarLightCurves  |  **72.424**  |float64  | 3 |commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | CPU 1          | pytorch       | StarLightCurves  |  **248.752** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
+| CPU 1          | pytorch       | StarLightCurves  |  **108.819** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | GPU           | pytorch       | StarLightCurves  |             | float64 | 3 |              |
 
 ## Relevant Articles
