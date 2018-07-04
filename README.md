@@ -71,6 +71,24 @@ for f in df.columns:
     time_series.append[df[f]]
 ```
 
+## Running on GPU
+**Run the kshape algorithm on a GPU using the PyTorch library.**
+Author: Adam Dziedzic
+
+### Settings
+number of clusters:  3
+selected data type:  float64
+selected source of data:  StarLightCurves (from UCR time-series dataset)
+loaded  9236  data points of length  1024
+CPU: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz, 8 cores, 32 GB RAM
+GPU: 503
+
+| Device        | Framework     | Dataset          | Time(sec)   | 
+| ------------- |:-------------:| ----------------:|------------:|
+| CPU           | numpy         | StarLightCurves  |  503.686    |
+| CPU           | pytorch       | StarLightCurves  |  248.752    |
+| GPU           | pytorch       | StarLightCurves  |             |
+
 ## Relevant Articles
 
 ### Original paper
