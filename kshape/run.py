@@ -1,10 +1,12 @@
 import sys
 import time
+
 import argparse
 import numpy as np
 
-from kshape import core_pytorch
 from kshape import core
+from kshape import core_pytorch
+from kshape.data import load_time_series
 
 gpu = "gpu"
 cpu = "cpu"
@@ -13,28 +15,39 @@ numpy = "numpy"
 device_help = "select device: {} or {}".format(cpu, gpu)
 framework_help = "select framework: {} or {}".format(numpy, torch)
 datatype_help = "select numpy data type"
+time_series_number = "number of random time-series (if chosen)"
+time_series_length = "length of random time-series (if chosen)"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-c", "--clusters", default=32, type=int, help="number of clusters")
-parser.add_argument("-n", "--number", default=1000, type=int, help="number of time-series")
-parser.add_argument("-l", "--length", default=1024, type=int, help="length of time-series")
+parser.add_argument("-c", "--clusters", default=3, type=int, help="number of clusters")
+parser.add_argument("-n", "--number", default=1000, type=int, help=time_series_number)
+parser.add_argument("-l", "--length", default=1024, type=int, help=time_series_length)
 parser.add_argument("-f", "--framework", default=numpy, help=framework_help)
 parser.add_argument("-d", "--device", default=cpu, help=device_help)
 parser.add_argument("-t", "--type", default="float64", help=datatype_help)
+parser.add_argument("-s", "--sourcedata", default="StarLightCurves",
+                    help="Choose a UCR time-series dataset or type 'random' to randomly generate data")
 
 args = parser.parse_args(sys.argv[1:])
 print("number of clusters: ", args.clusters)
-print("number of time-series: ", args.number)
-print("length of time-series: ", args.length)
-print("selected framework: ", args.framework)
+print(time_series_number, ": ", args.number)
+print(time_series_length, ": ", args.length)
+print(framework_help, ": ", args.framework)
 print("selected device: ", args.device)
 print("selected data type: ", args.type)
-data_type = np.dtype(type)
-print("data type after conversion: ", str(data_type))
+print("selected source of data: ", args.sourcedata)
 
-x = np.random.rand(args.number, args.length)
+if args.sourcedata == "random":
+    x = np.random.rand(args.number, args.length)
+else:
+    datasets = load_time_series.load_data(args.sourcedata)
+    train_set_x, train_set_y = datasets[0]
+    valid_set_x, valid_set_y = datasets[1]
+    test_set_x, test_set_y = datasets[2]
 
-print("data type: ")
+    x = np.vstack((train_set_x, valid_set_x, test_set_x))
+    print("loaded ", x.shape[0], " data points of length ", x.shape[1])
+
 try:
     x = x.astype(dtype=args.type, copy=False)
 except TypeError as err:
