@@ -91,6 +91,7 @@ GPU 1: Tesla P100 16 GB
 | CPU 1          | pytorch       | StarLightCurves  |  **248.752** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | CPU 1          | pytorch       | StarLightCurves  |  **108.819** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | CPU 1          | pytorch       | StarLightCurves  |  **55.395** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
+| CPU 1          | pytorch       | StarLightCurves  |  **141.321** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | GPU           | pytorch       | StarLightCurves  |             | float64 | 3 |              |
 
 ## Relevant Articles
