@@ -80,14 +80,15 @@ number of clusters:  3
 selected data type:  float64
 selected source of data:  StarLightCurves (from UCR time-series dataset)
 loaded  9236  data points of length  1024
-CPU: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz, 8 cores, 32 GB RAM
-GPU: 503
+CPU 1: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz, 8 cores, 32 GB RAM
+GPU 1: 503
 
-| Device        | Framework     | Dataset          | Time(sec)   | 
-| ------------- |:-------------:| ----------------:|------------:|
-| CPU           | numpy         | StarLightCurves  |  503.686    |
-| CPU           | pytorch       | StarLightCurves  |  248.752    |
-| GPU           | pytorch       | StarLightCurves  |             |
+| Device        | Framework     | Dataset          | Time(sec)   | Comment                            |
+| ------------- |:-------------:| ----------------:|------------:|-----------------------------------:|
+| CPU 1           | numpy         | StarLightCurves  |  **503.686**    |commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with full broadcasting to 3D array|
+| CPU 1           | numpy         | StarLightCurves  |  **53.658**    |commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
+| CPU 1          | pytorch       | StarLightCurves  |  **248.752**    | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
+| GPU           | pytorch       | StarLightCurves  |             ||
 
 ## Relevant Articles
 
