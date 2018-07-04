@@ -272,6 +272,7 @@ def kshape(x, k):
     >>> # expected: [(array([-1.05204252, -1.05204252,  0.30722438,  0.70136168,  1.09549899]), [3, 4]), (array([-1.26491106e+00, -6.32455532e-01,  7.47745081e-17,  6.32455532e-01, 1.26491106e+00]), [0, 1, 2])]
     >>> first_cluster = results[0]
     >>> second_cluster = results[1]
+    >>> first_cluster[0]
     >>> assert np.allclose(first_cluster[0], np.array([-1.05204252, -1.05204252,  0.30722438,  0.70136168,  1.09549899]))
     >>> assert np.array_equal(np.array(first_cluster[1]), np.array([3, 4]))
     >>> assert np.allclose(np.array(second_cluster[0]), np.array([-1.26491106e+00, -6.32455532e-01,  7.47745081e-17,  6.32455532e-01, 1.26491106e+00]))

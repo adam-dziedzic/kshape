@@ -186,10 +186,10 @@ def complex_mul_2dim(x, y):
     vc = y[..., 0] + y[..., 1]
     uavc = mul(ua, vc)
     ucva = mul(uc, va)
-    print("uavc shape: ", uavc.shape)
-    print("ucva shape: ", ucva.shape)
-    print("shape x: ", x.shape)
-    print("shape of add(ucva, uavc): ", add(ucva, uavc).shape)
+    # print("uavc shape: ", uavc.shape)
+    # print("ucva shape: ", ucva.shape)
+    # print("shape x: ", x.shape)
+    # print("shape of add(ucva, uavc): ", add(ucva, uavc).shape)
     result = torch.empty(*ucva.shape, 2)
     result[..., 1] = add(ucva, uavc)
     result[..., 0] = add(uavc, mul(mul(ub, vb), -1))
@@ -273,7 +273,7 @@ def _ncc_c_3dim(x, y):
     yfft = rfft(y, signal_ndim)
     # yfft = pytorch_conjugate(yfft)
     cc = irfft(complex_mul_2dim(xfft, yfft.unsqueeze(-3)), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
-    return div(cc[:, :, 2 * x_len - 1], den.unsqueeze(-1))
+    return div(cc[:, :, 2 * x_len - 1], den.transpose(0, 1).unsqueeze(-1))
 
 
 def _sbd(x, y):

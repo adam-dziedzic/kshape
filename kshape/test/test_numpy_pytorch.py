@@ -1,6 +1,7 @@
+import unittest
+
 import numpy as np
 import torch
-import unittest
 
 from kshape.core_pytorch import pytorch_conjugate, complex_mul_2dim
 
@@ -9,11 +10,13 @@ Test the _ncc_c_3dim - most of the code here is repeated from the function to be
 it with the results from numpy.
 """
 
+
 class NumpyPytorchNccTest3D(unittest.TestCase):
 
     def setUp(self):
-        self.x = np.array([[1., 2., 3.], [4., 5., 6.], [1., 0., 2.]], dtype=np.double)
-        self.centroids = np.array([[1., 1., 1.], [1., 0., 2.]], dtype=np.double)
+        self.num_type = np.double
+        self.x = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [1.0, 0.0, 2.0]], dtype=self.num_type)
+        self.centroids = np.array([[1.0, 1.0, 1.0], [1.0, 0.0, 2.0]], dtype=self.num_type)
 
     def test_norm(self):
         np_x_norm = np.linalg.norm(self.x, axis=1)
@@ -39,9 +42,11 @@ class NumpyPytorchNccTest3D(unittest.TestCase):
         # torch returns only half of the fft - as the other half is conjugate symmetric (from 1 to half of the signal)
         for i in range(torch_xfft.shape[0]):
             for j in range(torch_xfft.shape[1]):
-                print(i, j)
-                np.testing.assert_almost_equal(torch_xfft[i, j, 0].item(), np.real(np_xfft[i, j]))
-                np.testing.assert_almost_equal(torch_xfft[i, j, 1].item(), np.imag(np_xfft[i, j]))
+                # print(i, j)
+                np.testing.assert_almost_equal(self.num_type(torch_xfft[i, j, 0].item()),
+                                               self.num_type(np.real(np_xfft[i, j])), decimal=6)
+                np.testing.assert_almost_equal(self.num_type(torch_xfft[i, j, 1].item()),
+                                               self.num_type(np.imag(np_xfft[i, j])), decimal=6)
 
     def compare_arrays3D(self, np_xfft, torch_xfft):
         print("shape of np_xfft: ", np_xfft.shape)
@@ -50,10 +55,11 @@ class NumpyPytorchNccTest3D(unittest.TestCase):
         for i in range(torch_xfft.shape[0]):
             for j in range(torch_xfft.shape[1]):
                 for k in range(torch_xfft.shape[2]):
-                    print(i, j, k)
-                    np.testing.assert_almost_equal(torch_xfft[i, j, k, 0].item(), np.real(np_xfft[i, j, k]), decimal=6)
-                    np.testing.assert_almost_equal(torch_xfft[i, j, k, 1].item(), np.imag(np_xfft[i, j, k]), decimal=6)
-
+                    # print(i, j, k)
+                    np.testing.assert_almost_equal(self.num_type(torch_xfft[i, j, k, 0].item()),
+                                                   self.num_type(np.real(np_xfft[i, j, k])), decimal=6)
+                    np.testing.assert_almost_equal(self.num_type(torch_xfft[i, j, k, 1].item()),
+                                                   self.num_type(np.imag(np_xfft[i, j, k])), decimal=6)
 
     def get_xfft(self):
         x_len = self.x.shape[-1]
@@ -133,6 +139,7 @@ class NumpyPytorchNccTest3D(unittest.TestCase):
         signal_ndim = 1
 
         np_mul, torch_mul = self.get_muliplied_ffts()
+
         np_cc = np.fft.ifft(np_mul)
         np_cc = np.concatenate((np_cc[:, :, -(x_len - 1):], np_cc[:, :, :x_len]), axis=2)
         np_cc = np.real(np_cc)
@@ -141,12 +148,48 @@ class NumpyPytorchNccTest3D(unittest.TestCase):
         torch_cc = torch.irfft(torch_mul, signal_ndim=signal_ndim, signal_sizes=(fft_size,))
         torch_cc = torch.cat((torch_cc[:, :, -(x_len - 1):], torch_cc[:, :, :x_len]), dim=2)
         print("torch_cc: ", torch_cc)
+
         return np_cc, torch_cc
 
     def test_irfft(self):
         np_cc, torch_cc = self.get_irfft()
 
         self.compare_arrays2D(np_cc, torch_cc)
+
+    def get_denominator(self):
+        den = np.linalg.norm(self.x, axis=1)[:, None] * np.linalg.norm(self.centroids, axis=1)
+        den[den == 0] = np.Inf
+        np_den = den.T[:, :, None]
+        print("np_den: ", np_den)
+
+        x = torch.from_numpy(self.x)
+        c = torch.from_numpy(self.centroids)
+        den = torch.norm(x, p=2, dim=1).unsqueeze(-1) * torch.norm(c, p=2, dim=1)
+        den[den == 0] = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
+        torch_den = den.transpose(0, 1).unsqueeze(-1)
+        print("torch_den: ", torch_den)
+
+        return np_den, torch_den
+
+    def test_den(self):
+        """
+        Test the denominator of _ncc_c_3dim().
+        """
+        np_den, torch_den = self.get_denominator()
+        np.testing.assert_array_almost_equal(np_den, torch_den.numpy())
+
+    def result_ncc_c_3dim(self):
+        x_len = self.x.shape[-1]
+        np_cc, torch_cc = self.get_irfft()
+        np_den, torch_den = self.get_denominator()
+
+        np_ncc = np_cc / np_den
+        print("numpy_ncc_result: ", np_ncc)
+
+        torch_ncc = torch.div(torch_cc, torch_den)
+        print("torch_ncc_result: ", torch_ncc)
+
+        self.compare_arrays3D(np_ncc, torch_ncc)
 
 
 if __name__ == '__main__':
