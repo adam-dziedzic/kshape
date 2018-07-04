@@ -273,7 +273,8 @@ def _ncc_c_3dim(x, y):
     yfft = rfft(y, signal_ndim)
     # yfft = pytorch_conjugate(yfft)
     cc = irfft(complex_mul_2dim(xfft, yfft.unsqueeze(-3)), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
-    return div(cc[:, :, 2 * x_len - 1], den.transpose(0, 1).unsqueeze(-1))
+    result = div(cc[:, :, 2 * x_len - 1], den.transpose(0, 1).unsqueeze(-1))
+    return result
 
 
 def _sbd(x, y):
@@ -298,7 +299,7 @@ def _sbd(x, y):
     (tensor(5.9605e-08), tensor([0., 0., 1., 2., 3., 0., 0.]))
     """
     ncc = _ncc_c(x, y)
-    idx = ncc.argmax()
+    idx = ncc.argmax().item()
     dist = 1 - ncc[idx]
     yshift = roll_zeropad(y, (idx + 1) - max(len(x), len(y)))
 

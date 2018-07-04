@@ -179,7 +179,6 @@ class NumpyPytorchNccTest3D(unittest.TestCase):
         np.testing.assert_array_almost_equal(np_den, torch_den.numpy())
 
     def result_ncc_c_3dim(self):
-        x_len = self.x.shape[-1]
         np_cc, torch_cc = self.get_irfft()
         np_den, torch_den = self.get_denominator()
 
