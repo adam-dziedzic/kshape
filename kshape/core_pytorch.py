@@ -218,8 +218,9 @@ def _ncc_c(x, y):
     :param y: one-dimensional array
     :return: normalized cross correlation (with coefficient normalization)
 
-    >>> _ncc_c(tensor([1.,2.,3.,4.]), tensor([1.,2.,3.,4.]))
-    tensor([0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333])
+    >>> result1 = _ncc_c(tensor([1.,2.,3.,4.]), tensor([1.,2.,3.,4.]))
+    >>> expected1 = tensor([0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333])
+    >>> np.testing.assert_array_almost_equal(result1, expected1, decimal=4)
     >>> _ncc_c(tensor([1.,1.,1.]), tensor([1.,1.,1.]))
     tensor([0.3333, 0.6667, 1.0000, 0.6667, 0.3333])
     >>> _ncc_c(tensor([1.,2.,3.]), tensor([-1.,-1.,-1.]))
@@ -251,14 +252,17 @@ def _ncc_c_3dim(x, y):
     Returns a 3 dimensional array of normalized fourier transforms.
 
     >>> result = _ncc_c_3dim(tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [1.0, 0.0, 2.0]]), tensor([[1.0, 1.0, 1.0], [1.0, 0.0, 2.0]]))
-    >>> result
-    >>> torch.equal(result, tensor([[[0.1543, 0.4629, 0.9258, 0.7715, 0.4629], [0.2632, 0.5922, 0.9869, 0.7237, 0.3948], [0.2582, 0.2582, 0.7746, 0.5164, 0.5164]], [[0.2390, 0.4781, 0.8367, 0.2390, 0.3586], [0.4077, 0.5096, 0.8154, 0.2548, 0.3058], [0.4000, 0.0000, 1.0000, 0.0000, 0.4000]]]))
-    >>> _ncc_c_3dim(tensor([[1.,2.,3.]]), tensor([[-1.,-1.,-1.]]))
-    tensor([[[-0.1543, -0.4629, -0.9258, -0.7715, -0.4629]]])
-    >>> _ncc_c_3dim(tensor([[1.,2.,3.,4.]]), tensor([[1.,2.,3.,4.]]))
-    tensor([[[0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333]]])
-    >>> _ncc_c_3dim(tensor([[1.,1.,1.]]), tensor([[1.,1.,1.]]))
-    tensor([[[0.3333, 0.6667, 1.0000, 0.6667, 0.3333]]])
+    >>> expected = tensor([[[0.1543, 0.4629, 0.9258, 0.7715, 0.4629], [0.2632, 0.5922, 0.9869, 0.7237, 0.3948], [0.2582, 0.2582, 0.7746, 0.5164, 0.5164]], [[0.2390, 0.4781, 0.8367, 0.2390, 0.3586], [0.4077, 0.5096, 0.8154, 0.2548, 0.3058], [0.4000, 0.0000, 1.0000, 0.0000, 0.4000]]])
+    >>> np.testing.assert_array_almost_equal(result, expected, decimal=4)
+    >>> result2 = _ncc_c_3dim(tensor([[1.,2.,3.]]), tensor([[-1.,-1.,-1.]]))
+    >>> expected2 = tensor([[[-0.1543, -0.4629, -0.9258, -0.7715, -0.4629]]])
+    >>> np.testing.assert_array_almost_equal(result2, expected2, decimal=4)
+    >>> result3 = _ncc_c_3dim(tensor([[1.,2.,3.,4.]]), tensor([[1.,2.,3.,4.]]))
+    >>> expected3 = tensor([[[0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333]]])
+    >>> np.testing.assert_array_almost_equal(result3, expected3, decimal=4)
+    >>> result4 = _ncc_c_3dim(tensor([[1.,1.,1.]]), tensor([[1.,1.,1.]]))
+    >>> expected4 = tensor([[[0.3333, 0.6667, 1.0000, 0.6667, 0.3333]]])
+    >>> np.testing.assert_array_almost_equal(result4, expected4, decimal=4)
     """
     # Apply the L2 norm (the p=2 - the exponent value in the norm formulation).
     den = norm(x, p=2, dim=1).unsqueeze(-1) * norm(y, p=2, dim=1)
