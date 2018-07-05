@@ -379,16 +379,16 @@ def _extract_shape(idx, x, j, cur_center):
     :param cur_center: the current centroid for the cluter j
     :return: new centroid for cluster j
 
-    >>> _extract_shape(tensor([0, 1]), tensor([[1., 2., 3.], [4., 5., 6.]]), 2, tensor([0., 3., 4.]))
-    tensor([0., 0., 0.])
-    >>> _extract_shape(tensor([0, 1]), tensor([[1., 2., 3.], [4., 5., 6.]]), 1, tensor([0., 3., 4.]))
-    tensor([-1.,  0.,  1.])
-    >>> _extract_shape(tensor([0, 1]), tensor([[-1., 2., 3.], [4., -5., 6.]]), 1, tensor([0., 3., 4.]))
-    tensor([-0.9684,  1.0289, -0.0605])
-    >>> _extract_shape(tensor([1, 0, 1, 0]), tensor([[1., 2., 3., 4.], [0., 1., 2., 3.], [-1., 1., -1., 1.], [1., 2., 2., 3.]]), 0, tensor([0., 0., 0., 0.]))
-    tensor([-1.2089, -0.1962,  0.1962,  1.2089])
-    >>> _extract_shape(tensor([0, 0, 1, 0]), tensor([[1., 2., 3., 4.],[0., 1., 2., 3.],[-1., 1., -1., 1.],[1., 2., 2., 3.]]), 0, tensor([-1.2089303, -0.19618238, 0.19618238, 1.2089303]))
-    tensor([-1.1962, -0.2627,  0.2627,  1.1962])
+    >>> result = _extract_shape(tensor([0, 1]), tensor([[1., 2., 3.], [4., 5., 6.]]), 2, tensor([0., 3., 4.]))
+    >>> np.testing.assert_array_almost_equal(result, tensor([0., 0., 0.]), decimal=4)
+    >>> result = _extract_shape(tensor([0, 1]), tensor([[1., 2., 3.], [4., 5., 6.]]), 1, tensor([0., 3., 4.]))
+    >>> np.testing.assert_array_almost_equal(result, tensor([-1.,  0.,  1.]), decimal=4)
+    >>> result = _extract_shape(tensor([0, 1]), tensor([[-1., 2., 3.], [4., -5., 6.]]), 1, tensor([0., 3., 4.]))
+    >>> np.testing.assert_array_almost_equal(result, tensor([-0.9684,  1.0289, -0.0605]), decimal=4)
+    >>> result = _extract_shape(tensor([1, 0, 1, 0]), tensor([[1., 2., 3., 4.], [0., 1., 2., 3.], [-1., 1., -1., 1.], [1., 2., 2., 3.]]), 0, tensor([0., 0., 0., 0.]))
+    >>> np.testing.assert_array_almost_equal(result, tensor([-1.2089, -0.1962,  0.1962,  1.2089]), decimal=4)
+    >>> result = _extract_shape(tensor([0, 0, 1, 0]), tensor([[1., 2., 3., 4.],[0., 1., 2., 3.],[-1., 1., -1., 1.],[1., 2., 2., 3.]]), 0, tensor([-1.2089303, -0.19618238, 0.19618238, 1.2089303]))
+    >>> np.testing.assert_array_almost_equal(result, tensor([-1.1962, -0.2627,  0.2627,  1.1962]), decimal=4)
     """
     _a = []
     # shift all time-series to minimize their distance from the current centroid
