@@ -223,6 +223,9 @@ def _ncc_c_torch(x, y):
     >>> result3 = _ncc_c_torch(tensor([1.,2.,3.]), tensor([-1.,-1.,-1.]))
     >>> expected3 = tensor([-0.1543, -0.4629, -0.9258, -0.7715, -0.4629])
     >>> np.testing.assert_array_almost_equal(result3, expected3, decimal=4)
+    >>> result4 = _ncc_c_torch(tensor([1.1,5.5,3.9,1.0]), tensor([9.1,-1.1,0.7,-1.3]))
+    >>> expected4 = tensor([-0.0223, -0.0995, -0.0379, 0.0841, 0.7248, 0.5365, 0.142])
+    >>> np.testing.assert_array_almost_equal(result4, expected4, decimal=4)
     """
     # the denominator for normalization
     den = norm(x) * norm(y)
@@ -234,7 +237,7 @@ def _ncc_c_torch(x, y):
     # pad_size = fft_size - x_len
     # padding = torch.zeros(pad_size, device=x.device, dtype=x.dtype)
     # x = cat((x, padding))
-    cc = torch.nn.functional.conv1d(x.view(1, 1, -1), y.view(1, 1, -1), padding=len(x)-1).squeeze()
+    cc = torch.nn.functional.conv1d(x.view(1, 1, -1), y.view(1, 1, -1), padding=x.shape[-1] - 1).squeeze()
     return div(cc, den)
 
 
@@ -254,6 +257,9 @@ def _ncc_c(x, y):
     >>> result3 = _ncc_c(tensor([1.,2.,3.]), tensor([-1.,-1.,-1.]))
     >>> expected3 = tensor([-0.1543, -0.4629, -0.9258, -0.7715, -0.4629])
     >>> np.testing.assert_array_almost_equal(result3, expected3, decimal=4)
+    >>> result4 = _ncc_c(tensor([1.1,5.5,3.9,1.0]), tensor([9.1,-1.1,0.7,-1.3]))
+    >>> expected4 = tensor([-0.0223, -0.0995, -0.0379, 0.0841, 0.7248, 0.5365, 0.142])
+    >>> np.testing.assert_array_almost_equal(result4, expected4, decimal=4)
     """
     # the denominator for normalization
     den = norm(x) * norm(y)
@@ -338,7 +344,7 @@ def _ncc_c_3dim_torch(x, y):
     >>> np.testing.assert_array_almost_equal(result4, expected4, decimal=4)
     """
     # Apply the L2 norm (the p=2 - the exponent value in the norm formulation).
-    den = norm(x, p=2, dim=1).unsqueeze(-1) * norm(y, p=2, dim=1)
+    den = torch.mul(norm(x, p=2, dim=1).unsqueeze(-1), norm(y, p=2, dim=1))
     # for array den with values 0, replaces 0 values in den with float('inf')
     # https://goo.gl/XSxvau : boolean indexing in Python
     den[den == 0] = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
@@ -421,7 +427,7 @@ def _sbd(x, y):
     >>> np.testing.assert_array_almost_equal(dist, tensor(5.9605e-08), decimal=4)
     >>> np.testing.assert_array_equal(y, tensor([0., 0., 1., 2., 3., 0., 0.]))
     """
-    ncc = _ncc_c_torch(x, y)
+    ncc = _ncc_c(x, y)
     idx = ncc.argmax().item()
     dist = 1 - ncc[idx]
     yshift = roll_zeropad(y, (idx + 1) - max(len(x), len(y)))
@@ -530,12 +536,12 @@ def _kshape_pytorch(x, k, max_iterations=100, idx=None):
             centroids[j] = _extract_shape(idx, x, j, centroids[j])
 
         distances = (1 - _ncc_c_3dim_torch(x, centroids).max(dim=2)[0]).transpose(0, 1)
-        # similarities = _ncc_c_3dim(x, centroids)
-        # # tensor.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
-        # # row of the input tensor in the given dimension dim. The second return value is the index location of each
-        # # maximum value found (argmax).
-        # max_similarities = similarities.max(dim=-1)[0]
-        # distances = (1 - max_similarities).transpose(0, 1)
+        # # similarities = _ncc_c_3dim(x, centroids)
+        # # # tensor.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
+        # # # row of the input tensor in the given dimension dim. The second return value is the index location of each
+        # # # maximum value found (argmax).
+        # # max_similarities = similarities.max(dim=-1)[0]
+        # # distances = (1 - max_similarities).transpose(0, 1)
         idx = distances.argmin(dim=1)
 
         # compute distance in a for loop - it works better for huge amount of data:
