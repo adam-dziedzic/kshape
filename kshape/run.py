@@ -40,6 +40,8 @@ print("selected device: ", args.device)
 print("selected data type: ", args.type)
 print("selected source of data: ", args.sourcedata)
 
+clusters = args.clusters
+
 if args.sourcedata == "random":
     x = np.random.rand(args.number, args.length)
 else:
@@ -50,6 +52,9 @@ else:
 
     x = np.vstack((train_set_x, valid_set_x, test_set_x))
     print("loaded ", x.shape[0], " data points of length ", x.shape[1])
+
+    clusters = len(np.unique(train_set_y))
+    print("clusters: ", clusters)
 
 try:
     x = x.astype(dtype=args.type, copy=False)
@@ -69,12 +74,12 @@ if args.device == gpu:
 result = None
 start = time.time()
 if args.device == gpu:
-    result = core_pytorch.kshape_pytorch(x=x, k=args.clusters, device="cuda")
+    result = core_pytorch.kshape_pytorch(x=x, k=clusters, device="cuda")
 elif args.device == cpu:
     if args.framework == torch:
-        result = core_pytorch.kshape_pytorch(x=x, k=args.clusters, device=cpu)
+        result = core_pytorch.kshape_pytorch(x=x, k=clusters, device=cpu)
     elif args.framework == numpy:
-        result = core.kshape(x=x, k=args.clusters)
+        result = core.kshape(x=x, k=clusters)
 else:
     print("Error: ", device_help)
     exit(1)
