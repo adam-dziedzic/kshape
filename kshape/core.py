@@ -16,13 +16,12 @@ def zscore(a, axis=0, ddof=0):
     number of elements. By default ddof is zero.
     :return: z-normalized a
 
-    >>> zscore([1, 2, 3])
-    array([-1.22474487,  0.        ,  1.22474487])
-    >>> zscore([1, 2, 3], ddof=1)
-    array([-1.,  0.,  1.])
-    >>> zscore([[1,2,3],[4,5,6]], axis=1)
-    array([[-1.22474487,  0.        ,  1.22474487],
-           [-1.22474487,  0.        ,  1.22474487]])
+    >>> result = zscore(np.array([1., 2., 3.]))
+    >>> np.testing.assert_array_almost_equal(result, np.array([-1.2247,  0.0000,  1.2247]), decimal=4)
+    >>> result = zscore(np.array([1., 2., 3.]), ddof=1)
+    >>> np.testing.assert_array_almost_equal(result, np.array([-1.,  0.,  1.]), decimal=4)
+    >>> result = zscore(np.array([[1.,2.,3.],[4.,5.,6.]]), axis=1)
+    >>> np.testing.assert_array_almost_equal(result, np.array([[-1.2247,  0.0000,  1.2247], [-1.2247,  0.0000,  1.2247]]), decimal=4)
     """
     a = np.asanyarray(a)
     mns = a.mean(axis=axis)
@@ -42,18 +41,18 @@ def roll_zeropad(a, shift, axis=None):
     :param a: input time-series (sequence)
     :param shift: the number of positions to be shifted to the right (shift >= 0) or to the left (shift < 0)
     :param axis: the axis
-    :return:
+    :return: shifted time-series a
 
-    >>> roll_zeropad([1, 2, 3], shift=2)
-    array([0, 0, 1])
-    >>> roll_zeropad([1, 2, 3], 0)
-    array([1, 2, 3])
-    >>> roll_zeropad([1, 2, 3], -1)
-    array([2, 3, 0])
-    >>> roll_zeropad([1, 2, 3], 3)
-    array([0, 0, 0])
-    >>> roll_zeropad([1, 2, 3], 4)
-    array([0, 0, 0])
+    >>> result = roll_zeropad(np.array([1., 2., 3.]), shift=2)
+    >>> np.testing.assert_array_equal(result, np.array([0., 0., 1.]))
+    >>> result=roll_zeropad(np.array([1, 2, 3]), 0)
+    >>> np.testing.assert_array_equal(result, np.array([1, 2, 3]))
+    >>> result=roll_zeropad(np.array([1., 2., 3.]), -1)
+    >>> np.testing.assert_array_equal(result, np.array([2., 3., 0.]))
+    >>> result=roll_zeropad(np.array([1., 2., 3.]), 3)
+    >>> np.testing.assert_array_equal(result, np.array([0., 0., 0.]))
+    >>> result=roll_zeropad(np.array([1, 2, 3]), 4)
+    >>> np.testing.assert_array_equal(result, np.array([0, 0, 0]))
     """
     a = np.asanyarray(a)
     if shift == 0:
@@ -81,13 +80,24 @@ def roll_zeropad(a, shift, axis=None):
 
 def _ncc_c(x, y):
     """
-    >>> _ncc_c([1,2,3,4], [1,2,3,4])
-    array([ 0.13333333,  0.36666667,  0.66666667,  1.        ,  0.66666667,
-            0.36666667,  0.13333333])
-    >>> _ncc_c([1,1,1], [1,1,1])
-    array([ 0.33333333,  0.66666667,  1.        ,  0.66666667,  0.33333333])
-    >>> _ncc_c([1,2,3], [-1,-1,-1])
-    array([-0.15430335, -0.46291005, -0.9258201 , -0.77151675, -0.46291005])
+    Variant of NCCc that operates with 1 dimensional x array and 1 dimensional y array.
+
+    :param x: one-dimensional array
+    :param y: one-dimensional array
+    :return: normalized cross correlation (with coefficient normalization)
+
+    >>> result1 = _ncc_c(np.array([1.,2.,3.,4.]), np.array([1.,2.,3.,4.]))
+    >>> expected1 = np.array([0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333])
+    >>> np.testing.assert_array_almost_equal(result1, expected1, decimal=4)
+    >>> result2 = _ncc_c(np.array([1.,1.,1.]), np.array([1.,1.,1.]))
+    >>> expected2 = np.array([0.3333, 0.6667, 1.0000, 0.6667, 0.3333])
+    >>> np.testing.assert_array_almost_equal(result2, expected2, decimal=4)
+    >>> result3 = _ncc_c(np.array([1.,2.,3.]), np.array([-1.,-1.,-1.]))
+    >>> expected3 = np.array([-0.1543, -0.4629, -0.9258, -0.7715, -0.4629])
+    >>> np.testing.assert_array_almost_equal(result3, expected3, decimal=4)
+    >>> result4 = _ncc_c(np.array([1.1,5.5,3.9,1.0]), np.array([9.1,-1.1,0.7,-1.3]))
+    >>> expected4 = np.array([-0.0223, -0.0995, -0.0379, 0.0841, 0.7248, 0.5365, 0.142])
+    >>> np.testing.assert_array_almost_equal(result4, expected4, decimal=4)
     """
     den = np.array(norm(x) * norm(y))
     den[den == 0] = np.Inf
@@ -113,7 +123,7 @@ def _ncc_c_2dim(x, y):
     >>> np.testing.assert_almost_equal(result1, expected1)
 
     >>> result2 = _ncc_c_2dim(np.array([[1.0, 2.0, 3.0], [4.0, 1.0, 2.0], [5.0, 0.0, -1.0], [-1.0, -2.0, -3.0]]), np.array([1.0, 2.0, 1.0]))
-    >>> expected2 = np.array([[0.10910895, 0.43643578, 0.87287156, 0.87287156, 0.32732684], [0.35634832, 0.80178373, 0.71269665, 0.4454354 , 0.17817416], [ 0.40032038  0.80064077  0.32025631 -0.16012815 -0.08006408], [-0.10910895 -0.43643578 -0.87287156 -0.87287156 -0.32732684]])
+    >>> expected2 = np.array([[0.10910895, 0.43643578, 0.87287156, 0.87287156, 0.32732684], [0.35634832, 0.80178373, 0.71269665, 0.4454354 , 0.17817416], [ 0.40032038,  0.80064077,  0.32025631, -0.16012815, -0.08006408], [-0.10910895, -0.43643578, -0.87287156, -0.87287156, -0.32732684]])
     >>> np.testing.assert_almost_equal(result2, expected2)
     """
     den = np.array(norm(x, axis=1) * norm(y))
@@ -131,46 +141,19 @@ def _ncc_c_3dim(x, y):
     y vector
 
     Returns a 3 dimensional array of normalized fourier transforms
-    >>> _ncc_c_3dim(np.array([[1,2,3]]), np.array([[-1,-1,-1]]))
-    array([[[-0.15430335, -0.46291005, -0.9258201 , -0.77151675,
-             -0.46291005]]])
-    >>> big = _ncc_c_3dim(np.array([[1,2,3], [-1,-1,-1], [-1,-2,-1], [1,1,1], [-1,0,-1]]), np.array([[1,2,1], [0,1,0]]))
-    >>> #big
-    >>> #array([[[1.09108945e-01,4.36435780e-01,8.72871561e-01,8.72871561e-01,3.27326835e-01],[-2.35702260e-01,-7.07106781e-01,-9.42809042e-01,-7.07106781e-01,-2.35702260e-01],[-1.66666667e-01,-6.66666667e-01,-1.00000000e+00,-6.66666667e-01,-1.66666667e-01],[2.35702260e-01,7.07106781e-01,9.42809042e-01,7.07106781e-01,2.35702260e-01],[-2.88675135e-01,-5.77350269e-01,-5.77350269e-01,-5.77350269e-01,-2.88675135e-01]],[[1.48359792e-17,2.67261242e-01,5.34522484e-01,8.01783726e-01,-1.48359792e-17],[-8.01234453e-18,-5.77350269e-01,-5.77350269e-01,-5.77350269e-01,8.01234453e-18],[5.66558315e-18,-4.08248290e-01,-8.16496581e-01,-4.08248290e-01,-5.66558315e-18],[8.01234453e-18,5.77350269e-01,5.77350269e-01,5.77350269e-01,-8.01234453e-18],[0.00000000e+00,-7.07106781e-01,0.00000000e+00,-7.07106781e-01,0.00000000e+00]]])
-    >>> #expected = np.array([[[1.09108945e-01,4.36435780e-01,8.72871561e-01,8.72871561e-01,3.27326835e-01],[-2.35702260e-01,-7.07106781e-01,-9.42809042e-01,-7.07106781e-01,-2.35702260e-01],[-1.66666667e-01,-6.66666667e-01,-1.00000000e+00,-6.66666667e-01,-1.66666667e-01],[2.35702260e-01,7.07106781e-01,9.42809042e-01,7.07106781e-01,2.35702260e-01],[-2.88675135e-01,-5.77350269e-01,-5.77350269e-01,-5.77350269e-01,-2.88675135e-01]],[[1.48359792e-17,2.67261242e-01,5.34522484e-01,8.01783726e-01,-1.48359792e-17],[-8.01234453e-18,-5.77350269e-01,-5.77350269e-01,-5.77350269e-01,8.01234453e-18],[5.66558315e-18,-4.08248290e-01,-8.16496581e-01,-4.08248290e-01,-5.66558315e-18],[8.01234453e-18,5.77350269e-01,5.77350269e-01,5.77350269e-01,-8.01234453e-18],[0.00000000e+00,-7.07106781e-01,0.00000000e+00,-7.07106781e-01,0.00000000e+00]]])
-    >>> #np.array_equal(big, expected)
-    >>> big
-    array([[[ 1.09108945e-01,  4.36435780e-01,  8.72871561e-01,
-              8.72871561e-01,  3.27326835e-01],
-            [-2.35702260e-01, -7.07106781e-01, -9.42809042e-01,
-             -7.07106781e-01, -2.35702260e-01],
-            [-1.66666667e-01, -6.66666667e-01, -1.00000000e+00,
-             -6.66666667e-01, -1.66666667e-01],
-            [ 2.35702260e-01,  7.07106781e-01,  9.42809042e-01,
-              7.07106781e-01,  2.35702260e-01],
-            [-2.88675135e-01, -5.77350269e-01, -5.77350269e-01,
-             -5.77350269e-01, -2.88675135e-01]],
-    <BLANKLINE>
-           [[ 1.48359792e-17,  2.67261242e-01,  5.34522484e-01,
-              8.01783726e-01, -1.48359792e-17],
-            [-8.01234453e-18, -5.77350269e-01, -5.77350269e-01,
-             -5.77350269e-01,  8.01234453e-18],
-            [ 5.66558315e-18, -4.08248290e-01, -8.16496581e-01,
-             -4.08248290e-01, -5.66558315e-18],
-            [ 8.01234453e-18,  5.77350269e-01,  5.77350269e-01,
-              5.77350269e-01, -8.01234453e-18],
-            [ 0.00000000e+00, -7.07106781e-01,  0.00000000e+00,
-             -7.07106781e-01,  0.00000000e+00]]])
-    >>> x = np.array([[1,2,3],[4,5,6],[1,0,2]])
-    >>> centroids = np.array([[1,1,1],[1,0,2]])
-    >>> _ncc_c_3dim(x, centroids)
-    array([[[0.15430335, 0.46291005, 0.9258201 , 0.77151675, 0.46291005],
-            [0.26318068, 0.59215653, 0.98692754, 0.72374686, 0.39477102],
-            [0.25819889, 0.25819889, 0.77459667, 0.51639778, 0.51639778]],
-    <BLANKLINE>
-           [[0.23904572, 0.47809144, 0.83666003, 0.23904572, 0.35856858],
-            [0.40771775, 0.50964719, 0.81543551, 0.2548236 , 0.30578831],
-            [0.4       , 0.        , 1.        , 0.        , 0.4       ]]])
+
+    >>> result = _ncc_c_3dim(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [1.0, 0.0, 2.0]]), np.array([[1.0, 1.0, 1.0], [1.0, 0.0, 2.0]]))
+    >>> expected = np.array([[[0.1543, 0.4629, 0.9258, 0.7715, 0.4629], [0.2632, 0.5922, 0.9869, 0.7237, 0.3948], [0.2582, 0.2582, 0.7746, 0.5164, 0.5164]], [[0.2390, 0.4781, 0.8367, 0.2390, 0.3586], [0.4077, 0.5096, 0.8154, 0.2548, 0.3058], [0.4000, 0.0000, 1.0000, 0.0000, 0.4000]]])
+    >>> np.testing.assert_array_almost_equal(result, expected, decimal=4)
+    >>> result2 = _ncc_c_3dim(np.array([[1.,2.,3.]]), np.array([[-1.,-1.,-1.]]))
+    >>> expected2 = np.array([[[-0.1543, -0.4629, -0.9258, -0.7715, -0.4629]]])
+    >>> np.testing.assert_array_almost_equal(result2, expected2, decimal=4)
+    >>> result3 = _ncc_c_3dim(np.array([[1.,2.,3.,4.]]), np.array([[1.,2.,3.,4.]]))
+    >>> expected3 = np.array([[[0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333]]])
+    >>> np.testing.assert_array_almost_equal(result3, expected3, decimal=4)
+    >>> result4 = _ncc_c_3dim(np.array([[1.,1.,1.]]), np.array([[1.,1.,1.]]))
+    >>> expected4 = np.array([[[0.3333, 0.6667, 1.0000, 0.6667, 0.3333]]])
+    >>> np.testing.assert_array_almost_equal(result4, expected4, decimal=4)
     """
     den = norm(x, axis=1)[:, None] * norm(y, axis=1)
     den[den == 0] = np.Inf
@@ -183,12 +166,30 @@ def _ncc_c_3dim(x, y):
 
 def _sbd(x, y):
     """
-    >>> _sbd([1,1,1], [1,1,1])
-    (-2.2204460492503131e-16, array([1, 1, 1]))
-    >>> _sbd([0,1,2], [1,2,3])
-    (0.043817112532485103, array([1, 2, 3]))
-    >>> _sbd([1,2,3], [0,1,2])
-    (0.043817112532485103, array([0, 1, 2]))
+    Shape based distance between x and y.
+
+    :param x: the first time-series
+    :param y: the seconda time-series
+    :return: shape based distance between x and y, shifted y to the position that maximizes the similarity of x and y
+
+    >>> dist, y = _sbd(np.array([1.,1.,1.]), np.array([1.,1.,1.]))
+    >>> np.testing.assert_array_almost_equal(dist, np.array(0.), decimal=4)
+    >>> np.testing.assert_array_equal(y, np.array([1., 1., 1.]))
+    >>> dist, y = _sbd(np.array([0.,1.,2.]), np.array([1.,2.,3.]))
+    >>> np.testing.assert_array_almost_equal(dist, np.array(0.0438), decimal=4)
+    >>> np.testing.assert_array_equal(y, np.array([1., 2., 3.]))
+    >>> dist, y = _sbd(np.array([1.,2.,3.]), np.array([0.,1.,2.]))
+    >>> np.testing.assert_array_almost_equal(dist, np.array(0.0438), decimal=4)
+    >>> np.testing.assert_array_equal(y, np.array([0., 1., 2.]))
+    >>> dist, y = _sbd(np.array([1.,2.,3.]), np.array([-1.,-1.,-1.]))
+    >>> np.testing.assert_array_almost_equal(dist, np.array(1.1543), decimal=4)
+    >>> np.testing.assert_array_equal(y, np.array([-1.,  0.,  0.]))
+    >>> dist, y = _sbd(np.array([1.,2.,3.]), np.array([0.,1.,2.]))
+    >>> np.testing.assert_array_almost_equal(dist, np.array(0.0438), decimal=4)
+    >>> np.testing.assert_array_equal(y, np.array([0., 1., 2.]))
+    >>> dist, y = _sbd(np.array([0., 0., 1., 2., 3., 0., 0.]), np.array([1., 2., 3., 0., 0., 0., 0.]))
+    >>> np.testing.assert_array_almost_equal(dist, np.array(5.9605e-08), decimal=4)
+    >>> np.testing.assert_array_equal(y, np.array([0., 0., 1., 2., 3., 0., 0.]))
     """
     ncc = _ncc_c(x, y)
     idx = ncc.argmax()
@@ -200,14 +201,24 @@ def _sbd(x, y):
 
 def _extract_shape(idx, x, j, cur_center):
     """
-    >>> _extract_shape(np.array([0,1]), np.array([[1,2,3], [4,5,6]]), 1, np.array([0,3,4]))
-    array([-1.,  0.,  1.])
-    >>> _extract_shape(np.array([0,1]), np.array([[-1,2,3], [4,-5,6]]), 1, np.array([0,3,4]))
-    array([-0.96836405,  1.02888681, -0.06052275])
-    >>> _extract_shape(np.array([1,0,1,0]), np.array([[1,2,3,4], [0,1,2,3], [-1,1,-1,1], [1,2,2,3]]), 0, np.array([0,0,0,0]))
-    array([-1.2089303 , -0.19618238,  0.19618238,  1.2089303 ])
-    >>> _extract_shape(np.array([0,0,1,0]), np.array([[1,2,3,4],[0,1,2,3],[-1,1,-1,1],[1,2,2,3]]), 0, np.array([-1.2089303,-0.19618238,0.19618238,1.2089303]))
-    array([-1.19623139, -0.26273649,  0.26273649,  1.19623139])
+    Find new centroid.
+
+    :param idx: array of cluster numbers for each time-series
+    :param x: the input time-series
+    :param j: the current clustered to be considered
+    :param cur_center: the current centroid for the cluter j
+    :return: new centroid for cluster j
+
+    >>> result = _extract_shape(np.array([0, 1]), np.array([[1., 2., 3.], [4., 5., 6.]]), 2, np.array([0., 3., 4.]))
+    >>> np.testing.assert_array_almost_equal(result, np.array([[0., 0., 0.]]), decimal=4)
+    >>> result = _extract_shape(np.array([0, 1]), np.array([[1., 2., 3.], [4., 5., 6.]]), 1, np.array([0., 3., 4.]))
+    >>> np.testing.assert_array_almost_equal(result, np.array([-1.,  0.,  1.]), decimal=4)
+    >>> result = _extract_shape(np.array([0, 1]), np.array([[-1., 2., 3.], [4., -5., 6.]]), 1, np.array([0., 3., 4.]))
+    >>> np.testing.assert_array_almost_equal(result, np.array([-0.9684,  1.0289, -0.0605]), decimal=4)
+    >>> result = _extract_shape(np.array([1, 0, 1, 0]), np.array([[1., 2., 3., 4.], [0., 1., 2., 3.], [-1., 1., -1., 1.], [1., 2., 2., 3.]]), 0, np.array([0., 0., 0., 0.]))
+    >>> np.testing.assert_array_almost_equal(result, np.array([-1.2089, -0.1962,  0.1962,  1.2089]), decimal=4)
+    >>> result = _extract_shape(np.array([0, 0, 1, 0]), np.array([[1., 2., 3., 4.],[0., 1., 2., 3.],[-1., 1., -1., 1.],[1., 2., 2., 3.]]), 0, np.array([-1.2089303, -0.19618238, 0.19618238, 1.2089303]))
+    >>> np.testing.assert_array_almost_equal(result, np.array([-1.1962, -0.2627,  0.2627,  1.1962]), decimal=4)
     """
     _a = []
     for i in range(len(idx)):
@@ -243,6 +254,16 @@ def _extract_shape(idx, x, j, cur_center):
 
 def _kshape(x, k, max_iterations=100, idx=None):
     """
+    The main call of kshape.
+
+    :param x: the 2 dimensional array with time-series data
+    :param k: the scalar with number of expected clusters
+    :param max_iterations: how many times iterate through the time-series data, where each iteration is composed of two
+    steps: 1) cluster membership assignment, 2) centroid computation
+    :param idx: the initial assignment of time series to clusters
+    :return: a two element tuple where at the first position we have (for each time series) - its index of a cluster
+    and, in the second element of the tuple, the centroids for each cluster.
+
     >>> # from numpy.random import seed; seed(0)  # no need to set the seed - we set the initial cluster assignment
 
     >>> result_cluster_assignment, result_centroids = _kshape(np.array([[1.0,2.0,3.0,4.0], [0.0,1.0,2.0,3.0], [-1.0,1.0,-1.0,1.0], [1.0,2.0,2.0,3.0], [1.0,2.2,-2.0,-3.0], [-1.1,2.3,-2.9,3.4]]), 3, idx=np.array([1, 2, 1, 0, 0, 1]))
@@ -268,8 +289,8 @@ def _kshape(x, k, max_iterations=100, idx=None):
         # distances = (1 - _ncc_c_3dim(x, centroids).max(axis=2)).T
 
         # similarities = _ncc_c_3dim(x, centroids)
-        # # tensor.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
-        # # row of the input tensor in the given dimension dim. The second return value is the index location of each
+        # # np.array.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
+        # # row of the input np.array in the given dimension dim. The second return value is the index location of each
         # # maximum value found (argmax).
         # max_similarities = similarities.max(axis=2)
         # distances = (1 - max_similarities).T
@@ -294,22 +315,21 @@ def kshape(x, k, max_iterations=100, idx=None):
 
     :param x: the input time-series
     :param k: the number of expected clusters
-    :return: centroids, and for each centroid the index of the member time-series (from the input)
+    :param max_iterations: max number of iterations to run kshape
+    :param idx: initial assignment of time-series to clusters
+    :return: centroids, and for each centroid the index of the member time-series
 
     >>> from numpy.random import seed; seed(31)
-    >>> a = [[0,1,2,3,4], [1,2,3,4,5],[2,3,4,5,6], [3,4,5,6,7],[4,5,6,7,8]]
-    >>> results = kshape(a, 2)
-    >>> # check the results: we expect 2 clusters
-    >>> # expected: [(array([-1.05204252, -1.05204252,  0.30722438,  0.70136168,  1.09549899]), [3, 4]), (array([-1.26491106e+00, -6.32455532e-01,  7.47745081e-17,  6.32455532e-01, 1.26491106e+00]), [0, 1, 2])]
+    >>> a = [[0,1,2,3,4], [1,2,3,4,5],[5.1,3,4,5,1.0], [3,4,5,3.4,7],[4,5,6,7,8]]
+    >>> results = kshape(a, 2, idx=[1, 0, 1, 1, 0])
     >>> first_cluster = results[0]
     >>> second_cluster = results[1]
-    >>> first_cluster[0]
-    >>> np.testing.assert_array_almost_equal(first_cluster[0], np.array([-1.05204252, -1.05204252,  0.30722438,  0.70136168,  1.09549899]))
-    >>> np.testing.assert_array_equal(np.array(first_cluster[1]), np.array([3, 4]))
-    >>> np.testing.assert_array_almost_equal(np.array(second_cluster[0]), np.array([-1.26491106e+00, -6.32455532e-01,  7.47745081e-17,  6.32455532e-01, 1.26491106e+00]))
-    >>> np.testing.assert_array_equal(np.array(second_cluster[1]), np.array([0, 1, 2]))
+    >>> np.testing.assert_array_almost_equal(first_cluster[0], np.array([-1.24937 , -0.587328,  0.074714,  0.363188,  1.398797]))
+    >>> np.testing.assert_array_equal(first_cluster[1], np.array([0, 1, 3, 4]))
+    >>> np.testing.assert_array_almost_equal(second_cluster[0], np.array([-0.447214, -0.447214, -0.447214, -0.447214,  1.788854]))
+    >>> np.testing.assert_array_equal(second_cluster[1], np.array([2]))
     """
-    idx, centroids = _kshape(np.array(x), k)
+    idx, centroids = _kshape(np.array(x), k, max_iterations, idx)
     clusters = []
     for i, centroid in enumerate(centroids):
         series = []

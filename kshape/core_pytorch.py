@@ -209,7 +209,8 @@ def pytorch_conjugate(x):
 
 def _ncc_c_torch(x, y):
     """
-    # Variant of NCCc that operates with 1 dimensional x array and 1 dimensional y array.
+    Variant of NCCc that operates with 1 dimensional x array and 1 dimensional y array.
+
     :param x: one-dimensional array
     :param y: one-dimensional array
     :return: normalized cross correlation (with coefficient normalization)
@@ -243,7 +244,8 @@ def _ncc_c_torch(x, y):
 
 def _ncc_c(x, y):
     """
-    # Variant of NCCc that operates with 1 dimensional x array and 1 dimensional y array.
+    Variant of NCCc that operates with 1 dimensional x array and 1 dimensional y array.
+
     :param x: one-dimensional array
     :param y: one-dimensional array
     :return: normalized cross correlation (with coefficient normalization)
