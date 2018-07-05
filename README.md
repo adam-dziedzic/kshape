@@ -95,7 +95,8 @@ Author: Adam Dziedzic
 | CPU 1          | pytorch       | StarLightCurves  |  **55.395** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | CPU 1          | pytorch       | StarLightCurves  |  **141.321** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | CPU 1          | pytorch       | StarLightCurves  |  **82.864** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
-| GPU           | pytorch       | StarLightCurves  |             | float64 | 3 |              |
+| GPU           | pytorch       | StarLightCurves  |   **139.560**  | float32 | 3 |           |
+| CPU 2           | numpy         | StarLightCurves  |  **439.684** | float32 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with full broadcasting to 3D array|
 
 ## Relevant Articles
 
