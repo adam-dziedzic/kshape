@@ -75,6 +75,26 @@ for f in df.columns:
 **Run the kshape algorithm on a GPU using the PyTorch library.**
 Author: Adam Dziedzic
 
+### Usage
+
+```python
+from kshape.core_gpu import kshape_gpu, zscore_gpu
+
+time_series = [[1,2,3,4,5], [0,1,2,3,4], [3,2,1,0,-1], [1,2,2,3,3]]
+cluster_num = 2
+clusters = kshape_gpu(zscore_gpu(time_series), cluster_num)
+print("centroids and clusters: ", clusters)
+second_centroid = clusters[1][0].numpy()
+print("second centroid: ", second_centroid)
+# can return (there is some randomness involved in the algorithm so this can differ): [(tensor([-1.2511,  1.3528, -0.5106,  0.5652, -0.1564]), [3]), (tensor([-1.3289, -0.8265,  0.7324,  0.6802,  0.7428]), [0, 1, 2])]
+```
+
+Returns list of tuples with the clusters found by kshape. The first value of the
+tuple is zscore normalized centroid. The second value of the tuple is the index
+of assigned series to this cluster.
+The results can be examined by drawing graphs of the zscore normalized values
+and the corresponding centroid.
+
 ### Settings
 1. Data sets from UCR time-series archive or randomly generated with uniform distribution.
 2. CPU 1: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz, 8 cores, 32 GB RAM
@@ -123,7 +143,7 @@ pp. 1855-1870. ISBN 978-1-4503-2758-9, http://doi.org/10.1145/2723372.2737793. '
 ```bibtex
 @inproceedings{pykshape,
   title={PyKShape - python implementation of KShape for CPU and GPU},
-  author={Dziedzic, Adam and Thalheim, J{\"o}rg},
+  author={Dziedzic, Adam and Thalheim, J{\"o}rg and Paparrizos, John},
   booktitle={SIGMOD},
   year={2018}
 }
