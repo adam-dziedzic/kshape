@@ -421,7 +421,7 @@ def _sbd(x, y):
     >>> np.testing.assert_array_almost_equal(dist, tensor(5.9605e-08), decimal=4)
     >>> np.testing.assert_array_equal(y, tensor([0., 0., 1., 2., 3., 0., 0.]))
     """
-    ncc = _ncc_c(x, y)
+    ncc = _ncc_c_torch(x, y)
     idx = ncc.argmax().item()
     dist = 1 - ncc[idx]
     yshift = roll_zeropad(y, (idx + 1) - max(len(x), len(y)))
@@ -529,7 +529,7 @@ def _kshape_pytorch(x, k, max_iterations=100, idx=None):
         for j in range(k):
             centroids[j] = _extract_shape(idx, x, j, centroids[j])
 
-        distances = (1 - _ncc_c_3dim(x, centroids).max(dim=2)[0]).transpose(0, 1)
+        distances = (1 - _ncc_c_3dim_torch(x, centroids).max(dim=2)[0]).transpose(0, 1)
         # similarities = _ncc_c_3dim(x, centroids)
         # # tensor.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
         # # row of the input tensor in the given dimension dim. The second return value is the index location of each

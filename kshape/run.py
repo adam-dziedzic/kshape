@@ -3,6 +3,7 @@ import time
 
 import argparse
 import numpy as np
+import torch
 
 from kshape import core
 from kshape import core_pytorch
@@ -10,10 +11,10 @@ from kshape.data import load_time_series
 
 gpu = "gpu"
 cpu = "cpu"
-torch = "torch"
-numpy = "numpy"
+torch_lib = "torch"
+numpy_lib = "numpy"
 device_help = "select device: {} or {}".format(cpu, gpu)
-framework_help = "select framework: {} or {}".format(numpy, torch)
+framework_help = "select framework: {} or {}".format(numpy_lib, torch_lib)
 datatype_help = "select numpy data type"
 time_series_number = "number of random time-series (if chosen)"
 time_series_length = "length of random time-series (if chosen)"
@@ -22,7 +23,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--clusters", default=3, type=int, help="number of clusters")
 parser.add_argument("-n", "--number", default=1000, type=int, help=time_series_number)
 parser.add_argument("-l", "--length", default=1024, type=int, help=time_series_length)
-parser.add_argument("-f", "--framework", default=torch, help=framework_help)
+parser.add_argument("-f", "--framework", default=torch_lib, help=framework_help)
 parser.add_argument("-d", "--device", default=cpu, help=device_help)
 parser.add_argument("-t", "--type", default="float64", help=datatype_help)
 parser.add_argument("-p", "--print", default=False, type=bool, help="print results")
@@ -76,9 +77,9 @@ start = time.time()
 if args.device == gpu:
     result = core_pytorch.kshape_pytorch(x=x, k=clusters, device="cuda")
 elif args.device == cpu:
-    if args.framework == torch:
+    if args.framework == torch_lib:
         result = core_pytorch.kshape_pytorch(x=x, k=clusters, device=cpu)
-    elif args.framework == numpy:
+    elif args.framework == numpy_lib:
         result = core.kshape(x=x, k=clusters)
 else:
     print("Error: ", device_help)
