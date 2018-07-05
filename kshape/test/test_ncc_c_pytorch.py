@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
 
-from kshape.core_pytorch import _ncc_c
+from kshape.core_gpu import _ncc_c
 
 
 class NccTest(unittest.TestCase):

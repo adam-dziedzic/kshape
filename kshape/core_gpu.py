@@ -24,20 +24,20 @@ def _torch_version():
     return version
 
 
-def flip1(x, dim=0):
+def _flip1(x, dim=0):
     """
     Flip the tensor x for dimension dim.
 
     :param x: the input tensor
     :param dim: the dimension according to which we flip the tensor
     :return: flipped tensor
-    >>> result = flip2(tensor([1, 2, 3]), dim=0)
+    >>> result = _flip2(tensor([1, 2, 3]), dim=0)
     >>> np.testing.assert_array_equal(result, tensor([3, 2, 1]))
     """
     return x.flip([dim])
 
 
-def flip2(x, dim=0):
+def _flip2(x, dim=0):
     """
     Flip the tensor x for dimension dim.
 
@@ -47,7 +47,7 @@ def flip2(x, dim=0):
 
     This flip method is used only for version of PyTorch <= 0.4. There is a flip method added to Tensor in PyTorch 5.0.
 
-    >>> result = flip2(tensor([1, 2, 3]), dim=0)
+    >>> result = _flip2(tensor([1, 2, 3]), dim=0)
     >>> np.testing.assert_array_equal(result, tensor([3, 2, 1]))
     """
     indices = [slice(None)] * x.dim()
@@ -56,14 +56,32 @@ def flip2(x, dim=0):
 
 
 # flip = flip1
-flip = flip2  # I suppose there is a bug in current flip function in PyTorch so we revert to our own version of flip
+flip = _flip2  # I suppose there is a bug in current flip function in PyTorch so we revert to our own version of flip
 
 _torch_version = _torch_version()
 if _torch_version is None or _torch_version <= 0.4:
-    flip = flip2
+    flip = _flip2
 
 
-def zscore(a, axis=0, ddof=0):
+def zscore_gpu(a, axis=0, dtype=torch.float32):
+    """
+    Z-normalize signal a.
+
+    :param a: the input signal (time-series)
+    :param axis: axis for the normalization
+    :param dtype: the type of elements in a
+    :return: z-normalized a
+    """
+
+    if isinstance(a, np.ndarray):
+        # to avoid a copy of the data use from_numpy
+        a = torch.from_numpy(a).to(dtype)
+    else:
+        a = torch.tensor(a, dtype=dtype)
+    return _zscore(a, axis=axis)
+
+
+def _zscore(a, axis=0, ddof=0):
     """
     Z-normalize signal a.
 
@@ -73,11 +91,11 @@ def zscore(a, axis=0, ddof=0):
     number of elements. By default ddof is zero.
     :return: z-normalized a
 
-    >>> result = zscore(tensor([1., 2., 3.]))
+    >>> result = _zscore(tensor([1., 2., 3.]))
     >>> np.testing.assert_array_almost_equal(result, tensor([-1.2247,  0.0000,  1.2247]), decimal=4)
-    >>> result = zscore(tensor([1., 2., 3.]), ddof=1)
+    >>> result = _zscore(tensor([1., 2., 3.]), ddof=1)
     >>> np.testing.assert_array_almost_equal(result, tensor([-1.,  0.,  1.]), decimal=4)
-    >>> result = zscore(tensor([[1.,2.,3.],[4.,5.,6.]]), axis=1)
+    >>> result = _zscore(tensor([[1.,2.,3.],[4.,5.,6.]]), axis=1)
     >>> np.testing.assert_array_almost_equal(result, tensor([[-1.2247,  0.0000,  1.2247], [-1.2247,  0.0000,  1.2247]]), decimal=4)
     """
     mns = a.mean(dim=axis)
@@ -475,7 +493,7 @@ def _extract_shape(idx, x, j, cur_center):
     a = stack(_a)
 
     columns = a.shape[1]
-    y = zscore(a, axis=1, ddof=1)
+    y = _zscore(a, axis=1, ddof=1)
     s = y.transpose(0, 1).mm(y)
 
     p = torch.empty((columns, columns), device=x.device, dtype=x.dtype)
@@ -491,10 +509,10 @@ def _extract_shape(idx, x, j, cur_center):
     if finddistance1 >= finddistance2:
         centroid.mul_(-1)
 
-    return zscore(centroid, ddof=1)
+    return _zscore(centroid, ddof=1)
 
 
-def _kshape_pytorch(x, k, max_iterations=100, idx=None):
+def _kshape_gpu(x, k, max_iterations=100, idx=None):
     """
     The main call of kshape.
 
@@ -510,13 +528,13 @@ def _kshape_pytorch(x, k, max_iterations=100, idx=None):
     >>> # from core import_kshape_pytorch
     >>> # torch.manual_seed(0) # no need to set the seed - we set the initial cluster assignment
 
-    >>> result_cluster_assignment, result_centroids = _kshape_pytorch(tensor([[1.0,2.0,3.0,4.0], [0.0,1.0,2.0,3.0], [-1.0,1.0,-1.0,1.0], [1.0,2.0,2.0,3.0], [1.0,2.2,-2.0,-3.0], [-1.1,2.3,-2.9,3.4]], dtype=torch.double), 3, idx=torch.tensor([1, 2, 1, 0, 0, 1]))
+    >>> result_cluster_assignment, result_centroids = _kshape_gpu(tensor([[1.0,2.0,3.0,4.0], [0.0,1.0,2.0,3.0], [-1.0,1.0,-1.0,1.0], [1.0,2.0,2.0,3.0], [1.0,2.2,-2.0,-3.0], [-1.1,2.3,-2.9,3.4]], dtype=torch.double), 3, idx=torch.tensor([1, 2, 1, 0, 0, 1]))
     >>> expected_cluster_assignments, expected_centroids = (tensor([2, 2, 1, 0, 0, 1]), tensor([[-0.663535, -1.008225,  0.565868,  1.105892], [-0.701075,  0.761482, -1.011736,  0.95133 ], [-1.161895, -0.387298,  0.387299,  1.161895]]))
     >>> np.testing.assert_array_equal(result_cluster_assignment, expected_cluster_assignments)
     >>> np.testing.assert_array_almost_equal(result_centroids, expected_centroids)
 
     >>> torch_device = torch.device("cpu")
-    >>> result_cluster_assignment, result_centroids = _kshape_pytorch(tensor([[1.0,2.0,3.0,4.0], [0.0,1.0,2.0,3.0], [-1.0,1.0,-1.0,1.0], [1.0,2.0,2.0,3.0]]), 2, idx=torch.tensor([1, 0, 1, 0]))
+    >>> result_cluster_assignment, result_centroids = _kshape_gpu(tensor([[1.0,2.0,3.0,4.0], [0.0,1.0,2.0,3.0], [-1.0,1.0,-1.0,1.0], [1.0,2.0,2.0,3.0]]), 2, idx=torch.tensor([1, 0, 1, 0]))
     >>> expected_cluster_assignments, expected_centroids = (tensor([0, 0, 1, 0]), tensor([[-1.050464, -0.524116,  0.350155,  1.224426], [-0.866025,  0.866025, -0.866025,  0.866025]]))
     >>> np.testing.assert_array_equal(result_cluster_assignment, expected_cluster_assignments)
     >>> np.testing.assert_array_almost_equal(result_centroids, expected_centroids)
@@ -560,7 +578,7 @@ def _kshape_pytorch(x, k, max_iterations=100, idx=None):
     return idx, centroids
 
 
-def kshape_pytorch(x, k, device="cpu", max_iterations=100):
+def kshape_gpu(x, k, device="cpu", max_iterations=100, dtype=torch.float32):
     """
     Find k clusters for time-series in x.
 
@@ -570,16 +588,17 @@ def kshape_pytorch(x, k, device="cpu", max_iterations=100):
     :param max_iterations: maximum number of iterations, where each iterations is composed of two steps:
     (1) assignment step: update the cluster membership for each time-series
     (2) refinement step: update the cluster centroids
+    :param dtype: type of the elements in x
     :return: for each cluster returns its centroid and indexes of the time-series that belong to the cluster
     """
     torch_device = torch.device(device)
     if isinstance(x, np.ndarray):
         # to avoid a copy of the data use from_numpy
-        x = torch.from_numpy(x).to(torch_device)
+        x = torch.from_numpy(x).to(torch_device).to(dtype)
     else:
-        x = torch.tensor(x, device=torch_device)
+        x = torch.tensor(x, device=torch_device, dtype=dtype)
 
-    idx, centroids = _kshape_pytorch(x, k, max_iterations=max_iterations)
+    idx, centroids = _kshape_gpu(x, k, max_iterations=max_iterations)
     clusters = []
     for i, centroid in enumerate(centroids):
         series = []

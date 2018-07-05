@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from kshape import core
-from kshape import core_pytorch
+from kshape import core_gpu
 from kshape.data import load_time_series
 
 gpu = "gpu"
@@ -77,10 +77,10 @@ def run():
     result = None
     start = time.time()
     if args.device == gpu:
-        result = core_pytorch.kshape_pytorch(x=x, k=clusters, device="cuda")
+        result = core_gpu.kshape_gpu(x=x, k=clusters, device="cuda")
     elif args.device == cpu:
         if args.framework == torch_lib:
-            result = core_pytorch.kshape_pytorch(x=x, k=clusters, device=cpu)
+            result = core_gpu.kshape_gpu(x=x, k=clusters, device=cpu)
         elif args.framework == numpy_lib:
             result = core.kshape(x=x, k=clusters)
     else:

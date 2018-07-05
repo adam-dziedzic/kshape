@@ -3,7 +3,7 @@ import torch
 import unittest
 from torch import tensor
 
-from kshape.core_pytorch import pytorch_conjugate, complex_mul_2dim, _ncc_c_3dim
+from kshape.core_gpu import pytorch_conjugate, complex_mul_2dim, _ncc_c_3dim
 
 """
 Test the _ncc_c_3dim - most of the code here is repeated from the function to be able to verify each step and compare
