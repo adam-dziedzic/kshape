@@ -31,8 +31,8 @@ def flip1(x, dim=0):
     :param x: the input tensor
     :param dim: the dimension according to which we flip the tensor
     :return: flipped tensor
-    >>> flip2(tensor([1, 2, 3]), dim=0)
-    tensor([3, 2, 1])
+    >>> result = flip2(tensor([1, 2, 3]), dim=0)
+    >>> np.testing.assert_array_equal(result, tensor([3, 2, 1]))
     """
     return x.flip([dim])
 
@@ -47,8 +47,8 @@ def flip2(x, dim=0):
 
     This flip method is used only for version of PyTorch <= 0.4. There is a flip method added to Tensor in PyTorch 5.0.
 
-    >>> flip2(tensor([1, 2, 3]), dim=0)
-    tensor([3, 2, 1])
+    >>> result = flip2(tensor([1, 2, 3]), dim=0)
+    >>> np.testing.assert_array_equal(result, tensor([3, 2, 1]))
     """
     indices = [slice(None)] * x.dim()
     indices[dim] = torch.arange(x.size(dim) - 1, -1, -1, dtype=torch.long, device=x.device)
@@ -73,13 +73,12 @@ def zscore(a, axis=0, ddof=0):
     number of elements. By default ddof is zero.
     :return: z-normalized a
 
-    >>> zscore(tensor([1., 2., 3.]))
-    tensor([-1.2247,  0.0000,  1.2247])
-    >>> zscore(tensor([1., 2., 3.]), ddof=1)
-    tensor([-1.,  0.,  1.])
-    >>> zscore(tensor([[1.,2.,3.],[4.,5.,6.]]), axis=1)
-    tensor([[-1.2247,  0.0000,  1.2247],
-            [-1.2247,  0.0000,  1.2247]])
+    >>> result = zscore(tensor([1., 2., 3.]))
+    >>> np.testing.assert_array_almost_equal(result, tensor([-1.2247,  0.0000,  1.2247]), decimal=4)
+    >>> result = zscore(tensor([1., 2., 3.]), ddof=1)
+    >>> np.testing.assert_array_almost_equal(result, tensor([-1.,  0.,  1.]), decimal=4)
+    >>> result = zscore(tensor([[1.,2.,3.],[4.,5.,6.]]), axis=1)
+    >>> np.testing.assert_array_almost_equal(result, tensor([[-1.2247,  0.0000,  1.2247], [-1.2247,  0.0000,  1.2247]]), decimal=4)
     """
     mns = a.mean(dim=axis)
     sstd = a.std(dim=axis, unbiased=(ddof == 1))
@@ -97,16 +96,16 @@ def roll_zeropad(a, shift):
     :param shift: the number of positions to be shifted to the right (shift >= 0) or to the left (shift < 0)
     :return:
 
-    >>> roll_zeropad(tensor([1., 2., 3.]), shift=2)
-    tensor([0., 0., 1.])
-    >>> roll_zeropad(tensor([1, 2, 3]), 0)
-    tensor([1, 2, 3])
-    >>> roll_zeropad(tensor([1., 2., 3.]), -1)
-    tensor([2., 3., 0.])
-    >>> roll_zeropad(tensor([1., 2., 3.]), 3)
-    tensor([0., 0., 0.])
-    >>> roll_zeropad(tensor([1, 2, 3]), 4)
-    tensor([0, 0, 0])
+    >>> result = roll_zeropad(tensor([1., 2., 3.]), shift=2)
+    >>> np.testing.assert_array_equal(result, tensor([0., 0., 1.]))
+    >>> result=roll_zeropad(tensor([1, 2, 3]), 0)
+    >>> np.testing.assert_array_equal(result, tensor([1, 2, 3]))
+    >>> result=roll_zeropad(tensor([1., 2., 3.]), -1)
+    >>> np.testing.assert_array_equal(result, tensor([2., 3., 0.]))
+    >>> result=roll_zeropad(tensor([1., 2., 3.]), 3)
+    >>> np.testing.assert_array_equal(result, tensor([0., 0., 0.]))
+    >>> result=roll_zeropad(tensor([1, 2, 3]), 4)
+    >>> np.testing.assert_array_equal(result, tensor([0, 0, 0]))
     """
     if shift == 0:
         return a
@@ -132,11 +131,11 @@ def complex_mul(x, y):
     >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
     >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
     >>> # torch.equal(tensor1, tensor2): True if two tensors have the same size and elements, False otherwise.
-    >>> assert torch.equal(complex_mul(x, y), tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
+    >>> np.testing.assert_array_equal(complex_mul(x, y), tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
     >>> x = tensor([[1., 2.]])
     >>> y = tensor([[2., 3.]])
     >>> xy = complex_mul(x, y)
-    >>> assert torch.equal(xy, tensor([[-4., 7.]]))
+    >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
     """
     ua = x[:, 0]
     va = y[:, 0]
@@ -165,18 +164,15 @@ def complex_mul_2dim(x, y):
     >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
     >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
     >>> # torch.equal(tensor1, tensor2): True if two tensors have the same size and elements, False otherwise.
-    >>> torch.equal(complex_mul_2dim(x, y), tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
-    True
+    >>> np.testing.assert_array_equal(complex_mul_2dim(x, y), tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
     >>> x = tensor([[1., 2.]])
     >>> y = tensor([[2., 3.]])
     >>> xy = complex_mul_2dim(x, y)
-    >>> torch.equal(xy, tensor([[-4., 7.]]))
-    True
+    >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
     >>> x = tensor([[[1., 2.]]])
     >>> y = tensor([[[2., 3.]]])
     >>> xy = complex_mul_2dim(x, y)
-    >>> torch.equal(xy, tensor([[[-4., 7.]]]))
-    True
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.]]]))
     """
     ua = x[..., 0]
     va = y[..., 0]
@@ -205,7 +201,7 @@ def pytorch_conjugate(x):
 
     >>> x = tensor([[1, 2]])
     >>> x = pytorch_conjugate(x)
-    >>> assert torch.equal(x, tensor([[1, -2]]))
+    >>> np.testing.assert_array_equal(x, tensor([[1, -2]]))
     """
     x[..., 1].mul_(-1)
     return x
@@ -346,18 +342,24 @@ def _sbd(x, y):
     :param y: the seconda time-series
     :return: shape based distance between x and y, shifted y to the position that maximizes the similarity of x and y
 
-    >>> _sbd(tensor([1.,1.,1.]), tensor([1.,1.,1.]))
-    (tensor(0.), tensor([1., 1., 1.]))
-    >>> _sbd(tensor([0.,1.,2.]), tensor([1.,2.,3.]))
-    (tensor(0.0438), tensor([1., 2., 3.]))
-    >>> _sbd(tensor([1.,2.,3.]), tensor([0.,1.,2.]))
-    (tensor(0.0438), tensor([0., 1., 2.]))
-    >>> _sbd(tensor([1.,2.,3.]), tensor([-1.,-1.,-1.]))
-    (tensor(1.1543), tensor([-1.,  0.,  0.]))
-    >>> _sbd(tensor([1.,2.,3.], dtype=torch.float64), tensor([0.,1.,2.], dtype=torch.float64))
-    (tensor(0.0438, dtype=torch.float64), tensor([0., 1., 2.], dtype=torch.float64))
-    >>> _sbd(tensor([0., 0., 1., 2., 3., 0., 0.]), tensor([1., 2., 3., 0., 0., 0., 0.]))
-    (tensor(5.9605e-08), tensor([0., 0., 1., 2., 3., 0., 0.]))
+    >>> dist, y = _sbd(tensor([1.,1.,1.]), tensor([1.,1.,1.]))
+    >>> np.testing.assert_array_almost_equal(dist, tensor(0.), decimal=4)
+    >>> np.testing.assert_array_equal(y, tensor([1., 1., 1.]))
+    >>> dist, y = _sbd(tensor([0.,1.,2.]), tensor([1.,2.,3.]))
+    >>> np.testing.assert_array_almost_equal(dist, tensor(0.0438), decimal=4)
+    >>> np.testing.assert_array_equal(y, tensor([1., 2., 3.]))
+    >>> dist, y = _sbd(tensor([1.,2.,3.]), tensor([0.,1.,2.]))
+    >>> np.testing.assert_array_almost_equal(dist, tensor(0.0438), decimal=4)
+    >>> np.testing.assert_array_equal(y, tensor([0., 1., 2.]))
+    >>> dist, y = _sbd(tensor([1.,2.,3.]), tensor([-1.,-1.,-1.]))
+    >>> np.testing.assert_array_almost_equal(dist, tensor(1.1543), decimal=4)
+    >>> np.testing.assert_array_equal(y, tensor([-1.,  0.,  0.]))
+    >>> dist, y = _sbd(tensor([1.,2.,3.], dtype=torch.float64), tensor([0.,1.,2.], dtype=torch.float64))
+    >>> np.testing.assert_array_almost_equal(dist, tensor(0.0438, dtype=torch.float64), decimal=4)
+    >>> np.testing.assert_array_equal(y, tensor([0., 1., 2.], dtype=torch.float64))
+    >>> dist, y = _sbd(tensor([0., 0., 1., 2., 3., 0., 0.]), tensor([1., 2., 3., 0., 0., 0., 0.]))
+    >>> np.testing.assert_array_almost_equal(dist, tensor(5.9605e-08), decimal=4)
+    >>> np.testing.assert_array_equal(y, tensor([0., 0., 1., 2., 3., 0., 0.]))
     """
     ncc = _ncc_c(x, y)
     idx = ncc.argmax().item()

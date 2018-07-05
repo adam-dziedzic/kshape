@@ -26,13 +26,13 @@ setup(
     version=__version__,
     description="Python implementation of k-Shape",
     classifiers=CLASSIFIERS,
-    author="J. Thalheim",
-    author_email="joerg@thalheim.io",
+    author="J. Thalheim, A. Dziedzic",
+    author_email="joerg@thalheim.io, adam.cajf@gmail.com",
     packages=find_packages(),
     zip_safe=True,
     test_suite="kshape.test",
-    license="",
+    license="MIT",
     url="https://github.com/Mic92/kshape",
     entry_points={},
-    install_requires=['numpy']
+    install_requires=['numpy', 'pytorch']
 )

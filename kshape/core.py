@@ -261,18 +261,27 @@ def _kshape(x, k, max_iterations=100, idx=None):
     centroids = np.zeros((k, x.shape[1]))
 
     for _ in range(max_iterations):
-        old_idx = idx
+        old_idx = idx.copy()
         for j in range(k):
             centroids[j] = _extract_shape(idx, x, j, centroids[j])
 
         # distances = (1 - _ncc_c_3dim(x, centroids).max(axis=2)).T
-        similarities = _ncc_c_3dim(x, centroids)
-        # tensor.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
-        # row of the input tensor in the given dimension dim. The second return value is the index location of each
-        # maximum value found (argmax).
-        max_similarities = similarities.max(axis=2)
-        distances = (1 - max_similarities).T
-        idx = distances.argmin(1)
+
+        # similarities = _ncc_c_3dim(x, centroids)
+        # # tensor.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
+        # # row of the input tensor in the given dimension dim. The second return value is the index location of each
+        # # maximum value found (argmax).
+        # max_similarities = similarities.max(axis=2)
+        # distances = (1 - max_similarities).T
+
+        # idx = distances.argmin(1)
+
+        for i, time_series in enumerate(x):
+            similarities = _ncc_c_2dim(centroids, time_series)
+            max_similarities = similarities.max(axis=-1)
+            closest_centroid_index = max_similarities.argmax()
+            idx[i] = closest_centroid_index
+
         if np.array_equal(old_idx, idx):
             break
 
