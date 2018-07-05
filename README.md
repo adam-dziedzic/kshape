@@ -86,6 +86,7 @@ Author: Adam Dziedzic
 | CPU 1           | numpy         | StarLightCurves  |  **503.686** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with full broadcasting to 3D array|
 | CPU 1           | numpy         | StarLightCurves  |  **206.529** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with full broadcasting to 3D array|
 | CPU 1           | numpy         | StarLightCurves  |  **563.883** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with full broadcasting to 3D array|
+| CPU 1           | numpy         | StarLightCurves  |  **116.558** | float64 | 3  | commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with full broadcasting to 3D array|
 | CPU 1           | numpy         | StarLightCurves  |  **53.658**  |float64  | 3 |commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | CPU 1           | numpy         | StarLightCurves  |  **129.130**  |float64  | 3 |commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
 | CPU 1           | numpy         | StarLightCurves  |  **72.424**  |float64  | 3 |commit: 52a01fe1206fd98c39eeaed0e7199a80d01421b2 with iterative assignment of time-series to clusters |
