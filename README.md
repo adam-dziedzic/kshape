@@ -117,3 +117,13 @@ pp. 1855-1870. ISBN 978-1-4503-2758-9, http://doi.org/10.1145/2723372.2737793. '
   year         = {2017},
 }
 ```
+
+### GPU citation
+```bibtex
+@inproceedings{pykshape,
+  title={PyKShape - python implementation of KShape for CPU and GPU},
+  author={Dziedzic, Adam and Thalheim, J{\"o}rg},
+  booktitle={SIGMOD},
+  year={2018}
+}
+```
