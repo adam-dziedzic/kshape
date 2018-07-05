@@ -8,7 +8,7 @@ from kshape import core
 from kshape import core_pytorch
 from kshape.data import load_time_series
 
-gpu = "cuda"
+gpu = "gpu"
 cpu = "cpu"
 torch = "torch"
 numpy = "numpy"
@@ -22,9 +22,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--clusters", default=3, type=int, help="number of clusters")
 parser.add_argument("-n", "--number", default=1000, type=int, help=time_series_number)
 parser.add_argument("-l", "--length", default=1024, type=int, help=time_series_length)
-parser.add_argument("-f", "--framework", default=numpy, help=framework_help)
+parser.add_argument("-f", "--framework", default=torch, help=framework_help)
 parser.add_argument("-d", "--device", default=cpu, help=device_help)
 parser.add_argument("-t", "--type", default="float64", help=datatype_help)
+parser.add_argument("-p", "--print", default=False, type=bool, help="print results")
 parser.add_argument("-s", "--sourcedata", default="StarLightCurves",
                     help="Choose a UCR time-series dataset or type 'random' to randomly generate data")
 
@@ -56,18 +57,26 @@ except TypeError as err:
     sys.stdout.flush()
     exit(1)
 
+if args.device == gpu:
+    if torch.cuda.is_available():
+        print("CUDA is available via PyTorch")
+    else:
+        print("CUDA is not available via PyTorch, please install cuda and libcudnn from NVIDIA")
+        exit(1)
+
 result = None
 start = time.time()
 if args.device == gpu:
-    result = core_pytorch.kshape_pytorch(x=x, k=args.clusters, device=gpu)
+    result = core_pytorch.kshape_pytorch(x=x, k=args.clusters, device="cuda")
 elif args.device == cpu:
     if args.framework == torch:
         result = core_pytorch.kshape_pytorch(x=x, k=args.clusters, device=cpu)
     elif args.framework == numpy:
         result = core.kshape(x=x, k=args.clusters)
 else:
-    print(device_help)
+    print("Error: ", device_help)
+    exit(1)
 
-if result:
+print("elapsed time, ", time.time() - start, ",sec")
+if args.print:
     print(result)
-    print("elapsed time, ", time.time() - start, ",sec")
