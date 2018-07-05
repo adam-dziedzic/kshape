@@ -26,8 +26,10 @@ parser.add_argument("-f", "--framework", default=torch, help=framework_help)
 parser.add_argument("-d", "--device", default=cpu, help=device_help)
 parser.add_argument("-t", "--type", default="float64", help=datatype_help)
 parser.add_argument("-p", "--print", default=False, type=bool, help="print results")
-parser.add_argument("-s", "--sourcedata", default="StarLightCurves",
+parser.add_argument("-s", "--sourcedata", default="ElectricDevices",
                     help="Choose a UCR time-series dataset or type 'random' to randomly generate data")
+
+# StarLightCurves
 
 args = parser.parse_args(sys.argv[1:])
 print("number of clusters: ", args.clusters)

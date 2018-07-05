@@ -207,6 +207,37 @@ def pytorch_conjugate(x):
     return x
 
 
+def _ncc_c_torch(x, y):
+    """
+    # Variant of NCCc that operates with 1 dimensional x array and 1 dimensional y array.
+    :param x: one-dimensional array
+    :param y: one-dimensional array
+    :return: normalized cross correlation (with coefficient normalization)
+
+    >>> result1 = _ncc_c_torch(tensor([1.,2.,3.,4.]), tensor([1.,2.,3.,4.]))
+    >>> expected1 = tensor([0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333])
+    >>> np.testing.assert_array_almost_equal(result1, expected1, decimal=4)
+    >>> result2 = _ncc_c_torch(tensor([1.,1.,1.]), tensor([1.,1.,1.]))
+    >>> expected2 = tensor([0.3333, 0.6667, 1.0000, 0.6667, 0.3333])
+    >>> np.testing.assert_array_almost_equal(result2, expected2, decimal=4)
+    >>> result3 = _ncc_c_torch(tensor([1.,2.,3.]), tensor([-1.,-1.,-1.]))
+    >>> expected3 = tensor([-0.1543, -0.4629, -0.9258, -0.7715, -0.4629])
+    >>> np.testing.assert_array_almost_equal(result3, expected3, decimal=4)
+    """
+    # the denominator for normalization
+    den = norm(x) * norm(y)
+    if den == 0:
+        den = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
+    # print("x view", x.view(1,1,-1))
+    # x_len = len(x)
+    # fft_size = 1 << (2 * x_len - 1).bit_length()
+    # pad_size = fft_size - x_len
+    # padding = torch.zeros(pad_size, device=x.device, dtype=x.dtype)
+    # x = cat((x, padding))
+    cc = torch.nn.functional.conv1d(x.view(1, 1, -1), y.view(1, 1, -1), padding=len(x)-1).squeeze()
+    return div(cc, den)
+
+
 def _ncc_c(x, y):
     """
     # Variant of NCCc that operates with 1 dimensional x array and 1 dimensional y array.
@@ -288,6 +319,35 @@ def _ncc_c_2dim(x, y):
     return div(cc[:, :(2 * x_len - 1)], den.unsqueeze(-1))
 
 
+def _ncc_c_3dim_torch(x, y):
+    """
+    Variant of NCCc that operates with 2 dimensional x arrays and 2 dimensional y arrays.
+    Returns a 3 dimensional array of normalized fourier transforms.
+
+    >>> result = _ncc_c_3dim_torch(tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [1.0, 0.0, 2.0]]), tensor([[1.0, 1.0, 1.0], [1.0, 0.0, 2.0]]))
+    >>> expected = tensor([[[0.4629, 0.7715, 0.9258, 0.4629, 0.1543], [0.3948, 0.7237, 0.9869, 0.5922, 0.2632], [0.5164, 0.5164, 0.7746, 0.2582, 0.2582]], [[0.3586, 0.2390, 0.8367, 0.4781, 0.2390], [0.3058, 0.2548, 0.8154, 0.5096, 0.4077], [0.4000, 0.0000, 1.0000, 0.0000, 0.4000]]])
+    >>> np.testing.assert_array_almost_equal(result, expected, decimal=4)
+    >>> result2 = _ncc_c_3dim_torch(tensor([[1.,2.,3.]]), tensor([[-1.,-1.,-1.]]))
+    >>> expected2 = tensor([[[-0.4629, -0.7715, -0.9258, -0.4629, -0.1543]]])
+    >>> np.testing.assert_array_almost_equal(result2, expected2, decimal=4)
+    >>> result3 = _ncc_c_3dim_torch(tensor([[1.,2.,3.,4.]]), tensor([[1.,2.,3.,4.]]))
+    >>> expected3 = tensor([[[0.1333, 0.3667, 0.6667, 1.0000, 0.6667, 0.3667, 0.1333]]])
+    >>> np.testing.assert_array_almost_equal(result3, expected3, decimal=4)
+    >>> result4 = _ncc_c_3dim_torch(tensor([[1.,1.,1.]]), tensor([[1.,1.,1.]]))
+    >>> expected4 = tensor([[[0.3333, 0.6667, 1.0000, 0.6667, 0.3333]]])
+    >>> np.testing.assert_array_almost_equal(result4, expected4, decimal=4)
+    """
+    # Apply the L2 norm (the p=2 - the exponent value in the norm formulation).
+    den = norm(x, p=2, dim=1).unsqueeze(-1) * norm(y, p=2, dim=1)
+    # for array den with values 0, replaces 0 values in den with float('inf')
+    # https://goo.gl/XSxvau : boolean indexing in Python
+    den[den == 0] = torch.tensor(float("inf"), device=x.device, dtype=x.dtype)
+    cc = torch.nn.functional.conv1d(y.unsqueeze(1), x.unsqueeze(1), padding=y.shape[-1] - 1)
+    den = den.transpose(0, 1).unsqueeze(-1)
+    result = div(cc, den)
+    return result
+
+
 def _ncc_c_3dim(x, y):
     """
     Variant of NCCc that operates with 2 dimensional x arrays and 2 dimensional y arrays.
@@ -361,7 +421,7 @@ def _sbd(x, y):
     >>> np.testing.assert_array_almost_equal(dist, tensor(5.9605e-08), decimal=4)
     >>> np.testing.assert_array_equal(y, tensor([0., 0., 1., 2., 3., 0., 0.]))
     """
-    ncc = _ncc_c(x, y)
+    ncc = _ncc_c_torch(x, y)
     idx = ncc.argmax().item()
     dist = 1 - ncc[idx]
     yshift = roll_zeropad(y, (idx + 1) - max(len(x), len(y)))
@@ -458,7 +518,8 @@ def _kshape_pytorch(x, k, max_iterations=100, idx=None):
     len = x.size(1)  # number of samples per time-series (the length/width of the time-series)
     # idx - one-dimensional array of randomly assigned time-series to clusters
     if idx is None:
-        idx = torch.randint(0, k, (n,), device=x.device)
+        idx = torch.randint(0, k, (n,), dtype=torch.long)
+        idx = idx.to(x.device)
     # len: the lenght/width of the centroid is the same as the length/width of the time-series
     centroids = torch.zeros(k, len, device=x.device, dtype=x.dtype)
     # distances = torch.empty(m, k, device = torch_device)
@@ -468,22 +529,22 @@ def _kshape_pytorch(x, k, max_iterations=100, idx=None):
         for j in range(k):
             centroids[j] = _extract_shape(idx, x, j, centroids[j])
 
-        # distances = (1 - _ncc_c_3dim(x, centroids).max(dim=2)[0]).transpose(0, 1)
+        distances = (1 - _ncc_c_3dim_torch(x, centroids).max(dim=2)[0]).transpose(0, 1)
         # similarities = _ncc_c_3dim(x, centroids)
         # # tensor.max in PyTorch returns a tuple. The first return element in the tuple is the maximum value of each
         # # row of the input tensor in the given dimension dim. The second return value is the index location of each
         # # maximum value found (argmax).
         # max_similarities = similarities.max(dim=-1)[0]
         # distances = (1 - max_similarities).transpose(0, 1)
-        # idx = distances.argmin(dim=1)
+        idx = distances.argmin(dim=1)
 
         # compute distance in a for loop - it works better for huge amount of data:
         # http://scipy.github.io/old-wiki/pages/EricsBroadcastingDoc
-        for i, time_series in enumerate(x):
-            similarities = _ncc_c_2dim(centroids, time_series)
-            max_similarities = similarities.max(dim=-1)[0]
-            closest_centroid_index = max_similarities.argmax().item()
-            idx[i] = closest_centroid_index
+        # for i, time_series in enumerate(x):
+        #     similarities = _ncc_c_2dim(centroids, time_series)
+        #     max_similarities = similarities.max(dim=-1)[0]
+        #     closest_centroid_index = max_similarities.argmax().item()
+        #     idx[i] = closest_centroid_index
 
         if torch.equal(old_idx, idx):
             break
