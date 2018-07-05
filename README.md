@@ -79,7 +79,7 @@ Author: Adam Dziedzic
 1. Data sets from UCR time-series archive or randomly generated with uniform distribution.
 2. CPU 1: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz, 8 cores, 32 GB RAM
 3. GPU 1: Tesla P100 16 GB, 3584 cores
-
+4. CPU 2: Intel(R) Xeon(R) CPU E5-2670 v3 @ 2.30GHz, 48 cores, 128 GB RAM
 
 | Device| Framework  | Dataset  | Time(sec) |Type|# of clusters|Comment|
 | ------|:----------:| --------:|-----------|----|:-----------:|-------|
