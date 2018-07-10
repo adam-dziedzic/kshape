@@ -138,7 +138,8 @@ def roll_zeropad(a, shift):
 
 def complex_mul(x, y):
     """
-    Multiply arrays of complex numbers. Each complex number is expressed as a pair of real and imaginary parts.
+    Multiply arrays of complex numbers (it also handles multidimensional arrays of complex numbers). Each complex
+    number is expressed as a pair of real and imaginary parts.
 
     :param x: the first array of complex numbers
     :param y: the second array complex numbers
@@ -157,6 +158,18 @@ def complex_mul(x, y):
     >>> y = tensor([[2., 3.]])
     >>> xy = complex_mul(x, y)
     >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
+    >>> x = tensor([[[1., 2.]]])
+    >>> y = tensor([[[2., 3.]]])
+    >>> xy = complex_mul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]]])
+    >>> xy = complex_mul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.], [1., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]], [[ 6.,  0.], [-2., -2.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]], [[18.,  0.], [-2., -6.]]])
+    >>> xy = complex_mul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
     """
     ua = x.narrow(-1, 0, 1)
     ud = x.narrow(-1, 1, 1)
@@ -166,50 +179,9 @@ def complex_mul(x, y):
     uc = add(ud, mul(ua, -1))
     vc = add(va, vb)
     uavc = mul(ua, vc)
-    resultRel = add(uavc, mul(mul(ub, vb), -1))
-    resultIm = add(mul(uc, va), uavc)
-    result = cat((resultRel, resultIm), -1)
-    return result
-
-
-def complex_mul_2dim(x, y):
-    """
-    Multiply arrays of complex numbers. Each complex number is expressed as a pair of real and imaginary parts.
-
-    :param x: the first 2D (two-dimensional) array of complex numbers
-    :param y: the second 2D (two-dimensional) array complex numbers
-    :return: result of multiplication (an array with complex numbers)
-    # based on the paper: Fast Algorithms for Convolutional Neural Networks (https://arxiv.org/pdf/1509.09308.pdf)
-    >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
-    >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
-    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
-    >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
-    >>> # torch.equal(tensor1, tensor2): True if two tensors have the same size and elements, False otherwise.
-    >>> np.testing.assert_array_equal(complex_mul_2dim(x, y), tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
-    >>> x = tensor([[1., 2.]])
-    >>> y = tensor([[2., 3.]])
-    >>> xy = complex_mul_2dim(x, y)
-    >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
-    >>> x = tensor([[[1., 2.]]])
-    >>> y = tensor([[[2., 3.]]])
-    >>> xy = complex_mul_2dim(x, y)
-    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.]]]))
-    """
-    ua = x[..., 0]
-    va = y[..., 0]
-    ub = x[..., 0] + x[..., 1]
-    vb = y[..., 1]
-    uc = x[..., 1] - x[..., 0]
-    vc = y[..., 0] + y[..., 1]
-    uavc = mul(ua, vc)
-    ucva = mul(uc, va)
-    # print("uavc shape: ", uavc.shape)
-    # print("ucva shape: ", ucva.shape)
-    # print("shape x: ", x.shape)
-    # print("shape of add(ucva, uavc): ", add(ucva, uavc).shape)
-    result = torch.empty(*ucva.shape, 2, dtype=x.dtype, device=x.device)
-    result[..., 1] = add(ucva, uavc)
-    result[..., 0] = add(uavc, mul(mul(ub, vb), -1))
+    result_rel = add(uavc, mul(mul(ub, vb), -1))
+    result_im = add(mul(uc, va), uavc)
+    result = cat((result_rel, result_im), -1)
     return result
 
 
@@ -344,7 +316,7 @@ def _ncc_c_2dim(x, y):
     xfft = rfft(x, signal_ndim)
     yfft = rfft(y, signal_ndim)
     # yfft = pytorch_conjugate(yfft)
-    cc = irfft(complex_mul_2dim(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
+    cc = irfft(complex_mul(xfft, yfft), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
     return div(cc[:, :(2 * x_len - 1)], den.unsqueeze(-1))
 
 
@@ -416,7 +388,7 @@ def _ncc_c_3dim(x, y):
     yfft = rfft(y, signal_ndim)
     # yfft = pytorch_conjugate(yfft)
     # use broadcasting ...unsqueeze(-3) to compute the distances for each pair of time-series and centroids
-    cc = irfft(complex_mul_2dim(xfft, yfft.unsqueeze(-3)), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
+    cc = irfft(complex_mul(xfft, yfft.unsqueeze(-3)), signal_ndim=signal_ndim, signal_sizes=(fft_size,))
     den = den.transpose(0, 1).unsqueeze(-1)
     cc = cc[:, :, :(2 * x_len - 1)]
     result = div(cc, den)
