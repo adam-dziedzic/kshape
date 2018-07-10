@@ -31,8 +31,10 @@ def _flip1(x, dim=0):
     :param x: the input tensor
     :param dim: the dimension according to which we flip the tensor
     :return: flipped tensor
-    >>> result = _flip2(tensor([1, 2, 3]), dim=0)
+    >>> result = _flip1(tensor([1, 2, 3]), dim=0)
     >>> np.testing.assert_array_equal(result, tensor([3, 2, 1]))
+    >>> result = _flip1(tensor([2, 3, 1]), dim=0)
+    >>> np.testing.assert_array_equal(result, tensor([1, 3, 2]))
     """
     return x.flip([dim])
 
@@ -195,8 +197,14 @@ def pytorch_conjugate(x):
     >>> x = tensor([[1, 2]])
     >>> x = pytorch_conjugate(x)
     >>> np.testing.assert_array_equal(x, tensor([[1, -2]]))
+    >>> x = tensor([[1, 2], [3, 4]])
+    >>> x = pytorch_conjugate(x)
+    >>> np.testing.assert_array_equal(x, tensor([[1, -2], [3, -4]]))
+    >>> x = tensor([[[1, 2], [3, 4]], [[0.0, 0.0], [0., 1.]]])
+    >>> x = pytorch_conjugate(x)
+    >>> np.testing.assert_array_equal(x, tensor([[[1, -2], [3, -4]], [[0., 0.], [0., -1]]]))
     """
-    x[..., 1].mul_(-1)
+    x.narrow(-1, 1, 1).mul_(-1)
     return x
 
 
