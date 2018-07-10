@@ -144,6 +144,9 @@ def complex_mul(x, y):
     :param y: the second array complex numbers
     :return: result of multiplication (an array with complex numbers)
     # based on the paper: Fast Algorithms for Convolutional Neural Networks (https://arxiv.org/pdf/1509.09308.pdf)
+    >>> x = tensor([[ 6.,  0.], [0., -2.], [1., 0.], [ 1.,  1.], [1., 2.]])
+    >>> y = tensor([[2.,  0.], [0., -6.], [0., 1.], [ 1.,  1.], [2., 3.]])
+    >>> np.testing.assert_array_equal(complex_mul(x, y), tensor([[12.,   0.], [-12., 0.], [0., 1.], [ 0.,   2.], [-4., 7.]]))
     >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
     >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
     >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
@@ -155,16 +158,17 @@ def complex_mul(x, y):
     >>> xy = complex_mul(x, y)
     >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
     """
-    ua = x[:, 0]
-    va = y[:, 0]
-    ub = x[:, 0] + x[:, 1]
-    vb = y[:, 1]
-    uc = x[:, 1] - x[:, 0]
-    vc = y[:, 0] + y[:, 1]
-    result = torch.empty_like(x)
+    ua = x.narrow(-1, 0, 1)
+    ud = x.narrow(-1, 1, 1)
+    va = y.narrow(-1, 0, 1)
+    vb = y.narrow(-1, 1, 1)
+    ub = add(ua, ud)
+    uc = add(ud, mul(ua, -1))
+    vc = add(va, vb)
     uavc = mul(ua, vc)
-    result[:, 0] = add(uavc, mul(mul(ub, vb), -1))
-    result[:, 1] = add(mul(uc, va), uavc)
+    resultRel = add(uavc, mul(mul(ub, vb), -1))
+    resultIm = add(mul(uc, va), uavc)
+    result = cat((resultRel, resultIm), -1)
     return result
 
 
@@ -175,7 +179,6 @@ def complex_mul_2dim(x, y):
     :param x: the first 2D (two-dimensional) array of complex numbers
     :param y: the second 2D (two-dimensional) array complex numbers
     :return: result of multiplication (an array with complex numbers)
-    # based on the paper: Fast Algorithms for Convolutional Neural Networks (https://arxiv.org/pdf/1509.09308.pdf)
     # based on the paper: Fast Algorithms for Convolutional Neural Networks (https://arxiv.org/pdf/1509.09308.pdf)
     >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
     >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
